@@ -440,6 +440,7 @@ button {
   font-size: 0.82rem;
   font-weight: 700;
   letter-spacing: 0.01em;
+  line-height: 1.15;
 }
 
 .cat-chip-count {
