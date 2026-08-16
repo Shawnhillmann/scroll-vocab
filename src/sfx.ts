@@ -15,13 +15,12 @@ export function playScroll(): void {
 }
 
 export function playCorrect(): void {
-  chirp(523.25, 523.25, 0.1, 0.09, 0)
-  chirp(659.25, 659.25, 0.12, 0.08, 0.07)
-  chirp(783.99, 880, 0.22, 0.1, 0.14)
+  chirp(784, 784, 0.09, 0.07, 0)
+  chirp(1046, 1046, 0.16, 0.08, 0.07)
 }
 
 export function playWrong(): void {
-  chirp(196, 140, 0.18, 0.07)
+  chirp(620, 620, 0.09, 0.055)
 }
 
 export function playResult(): void {
