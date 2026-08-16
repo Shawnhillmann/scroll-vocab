@@ -11,7 +11,21 @@ export function unlockSfx(): void {
 }
 
 export function playScroll(): void {
-  ping(640, 0.05, 0.05)
+  if (muted) return
+  unlockSfx()
+  if (!ctx) return
+
+  const t = ctx.currentTime
+  const osc = ctx.createOscillator()
+  const gain = ctx.createGain()
+  osc.type = 'sine'
+  osc.frequency.setValueAtTime(920, t)
+  osc.frequency.exponentialRampToValueAtTime(1280, t + 0.03)
+  gain.gain.setValueAtTime(0.14, t)
+  gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.03)
+  osc.connect(gain).connect(ctx.destination)
+  osc.start(t)
+  osc.stop(t + 0.032)
 }
 
 export function playCorrect(): void {

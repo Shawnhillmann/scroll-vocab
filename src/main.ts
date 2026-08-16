@@ -531,8 +531,9 @@ function bindFeed(): void {
 
       if (index === activeIndex) return
 
+      const goingForward = index > activeIndex
       activeIndex = index
-      playScroll()
+      if (goingForward) playScroll()
       refreshChrome()
       if (settings.started && effectiveMode() === 'learn' && autoplay) speakWord(index)
     },
