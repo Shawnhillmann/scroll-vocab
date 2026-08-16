@@ -93,6 +93,7 @@ function readSoundPrefs(raw: unknown): SoundPrefs {
     choice?: Partial<SoundPrefs['choice']>
   }
   sounds.voice = parsed.voice !== false
+  sounds.reveal = parsed.reveal !== false
   for (const action of SOUND_ACTIONS) {
     sounds.enabled[action.id] = parsed.enabled?.[action.id] !== false
     const choice = parsed.choice?.[action.id]
@@ -125,6 +126,8 @@ let feedWords: Word[] = []
 let feedKey = ''
 let activeIndex = 0
 let speakTimer = 0
+let revealTimer = 0
+let learnGeneration = 0
 let advanceTimer = 0
 let observer: IntersectionObserver | undefined
 let sessionCorrect = 0
@@ -231,6 +234,15 @@ app.innerHTML = `
               <p class="field-note">Speaks the word you’re learning</p>
             </div>
             <button class="choice" type="button" id="toggle-voice">On</button>
+          </div>
+        </div>
+        <div class="field">
+          <div class="sound-head">
+            <div>
+              <label>Word reveal</label>
+              <p class="field-note">Ask first, then fade in the word you’re learning</p>
+            </div>
+            <button class="choice" type="button" id="toggle-reveal">On</button>
           </div>
         </div>
         <div id="sound-fields"></div>
@@ -435,6 +447,14 @@ qs('#toggle-voice').addEventListener('click', () => {
   saveSettings()
   refreshSoundSheet()
 })
+qs('#toggle-reveal').addEventListener('click', () => {
+  settings.sounds.reveal = !settings.sounds.reveal
+  saveSettings()
+  refreshSoundSheet()
+  if (settings.started && effectiveMode() === 'learn') {
+    renderFeed(feedWords[activeIndex]?.id)
+  }
+})
 soundFields.addEventListener('click', (event) => {
   const target = (event.target as HTMLElement).closest<HTMLButtonElement>('[data-sound-on]')
   if (!target) return
@@ -500,7 +520,6 @@ async function beginSession(reviewing: boolean): Promise<void> {
   knownSheet.hidden = true
   sheet.hidden = true
   soundSheet.hidden = true
-  if (effectiveMode() === 'learn') speakWord(0, true)
 }
 
 function openKnown(): void {
@@ -528,6 +547,9 @@ function goHome(): void {
   stopSpeech()
   window.clearTimeout(advanceTimer)
   window.clearTimeout(resultsTimer)
+  window.clearTimeout(speakTimer)
+  window.clearTimeout(revealTimer)
+  learnGeneration += 1
   hideResults()
   observer?.disconnect()
   feedWords = []
@@ -578,6 +600,9 @@ function renderFeed(startId?: string): void {
 
   observer?.disconnect()
   window.clearTimeout(advanceTimer)
+  window.clearTimeout(speakTimer)
+  window.clearTimeout(revealTimer)
+  learnGeneration += 1
   const pool = activePool()
   feedWords = effectiveMode() === 'learn' ? pool : shuffled(pool)
   feedKey = currentFeedKey()
@@ -610,6 +635,7 @@ function renderFeed(startId?: string): void {
   feed.querySelector<HTMLElement>(`[data-index="${activeIndex}"]`)?.classList.add('is-active')
   feed.querySelector<HTMLElement>(`[data-index="${activeIndex}"]`)?.scrollIntoView()
   refreshChrome()
+  if (settings.started && effectiveMode() === 'learn') startLearnHook(activeIndex)
 }
 
 function bindFeed(): void {
@@ -618,6 +644,12 @@ function bindFeed(): void {
       const card = button.closest('.card')
       if (effectiveMode() !== 'learn' && !card?.classList.contains('answered')) return
       unlockSpeech()
+      if (effectiveMode() === 'learn') {
+        const revealed = card?.classList.contains('is-revealed')
+        if (revealed) speakWord(index, true)
+        else revealLearnCard(index, true)
+        return
+      }
       speakWord(index, true)
     })
   })
@@ -675,7 +707,7 @@ function bindFeed(): void {
 
       activeIndex = index
       refreshChrome()
-      if (settings.started && effectiveMode() === 'learn' && settings.sounds.voice) speakWord(index)
+      if (settings.started && effectiveMode() === 'learn') startLearnHook(index)
     },
     { root: feed, threshold: 0.72 },
   )
@@ -691,9 +723,9 @@ function cardMarkup(word: Word, index: number, pool: Word[]): string {
   const known = isKnown(word.id)
   const hint =
     mode === 'learn'
-      ? index === 0
-        ? 'Tap emoji to replay · swipe up'
-        : 'Tap to replay'
+      ? settings.sounds.reveal
+        ? 'Listen · the word appears'
+        : 'Tap emoji to replay · swipe up'
       : mode === 'choice'
         ? 'Pick the word'
         : 'Type the word · accents optional'
@@ -720,16 +752,40 @@ function cardMarkup(word: Word, index: number, pool: Word[]): string {
   const prompt = quiz
     ? `<p class="native" data-native>${native}</p>
        <p class="learn" data-learn hidden></p>`
-    : `<p class="learn" data-learn></p>
-       <p class="native" data-native>${native}</p>`
+    : settings.sounds.reveal
+      ? `<div class="hook">
+           <p class="hook-ask">${escapeHtml(hookFor(index, settings.native).label)}</p>
+           <p class="hook-native" data-native>${escapeHtml(displayPromptWord(word.forms[settings.native]))}</p>
+         </div>
+         <button class="emoji-hit" type="button" aria-label="Replay pronunciation">
+           <span class="emoji">${word.emoji}</span>
+         </button>
+         <p class="learn is-blurred" data-learn aria-hidden="true">${answer}</p>`
+      : `<button class="emoji-hit" type="button" aria-label="Replay pronunciation">
+           <span class="emoji">${word.emoji}</span>
+         </button>
+         <p class="learn" data-learn>${answer}</p>
+         <p class="native" data-native>${native}</p>`
 
-  return `
-    <article class="card ${quiz ? 'card-quiz' : ''}" data-index="${index}" data-answer="${answer}" style="background:${word.tint}">
-      <button class="emoji-hit" type="button" aria-label="${quiz ? 'Word prompt' : 'Replay pronunciation'}">
+  if (quiz) {
+    return `
+    <article class="card card-quiz" data-index="${index}" data-answer="${answer}" style="background:${word.tint}">
+      <button class="emoji-hit" type="button" aria-label="Word prompt">
         <span class="emoji">${word.emoji}</span>
       </button>
       ${prompt}
       ${quizUi}
+      <button class="known-btn ${known ? 'is-on' : ''}" type="button" data-word-id="${word.id}">
+        ${known ? 'Known · tap to learn again' : 'Mark as known'}
+      </button>
+      <p class="hint">${hint}</p>
+    </article>
+  `
+  }
+
+  return `
+    <article class="card card-learn${settings.sounds.reveal ? '' : ' is-revealed'}" data-index="${index}" data-answer="${answer}" style="background:${word.tint}">
+      ${prompt}
       <button class="known-btn ${known ? 'is-on' : ''}" type="button" data-word-id="${word.id}">
         ${known ? 'Known · tap to learn again' : 'Mark as known'}
       </button>
@@ -829,6 +885,144 @@ function scheduleAdvance(index: number): void {
   }, 1100)
 }
 
+function displayPromptWord(value: string): string {
+  const text = value.trim()
+  if (!text) return '?'
+  const capped = text.charAt(0).toUpperCase() + text.slice(1)
+  return capped.endsWith('?') ? capped : `${capped}?`
+}
+
+type HookLine = {
+  label: string
+  speak: (word: string) => string
+}
+
+const HOOKS: Record<LangCode, HookLine[]> = {
+  en: [
+    { label: 'How do you say', speak: (word) => `How do you say ${word}?` },
+    { label: 'Do you know', speak: (word) => `Do you know ${word}?` },
+    { label: 'How would you say', speak: (word) => `How would you say ${word}?` },
+    { label: 'Can you say', speak: (word) => `Can you say ${word}?` },
+    { label: 'What’s', speak: (word) => `What's ${word}?` },
+  ],
+  pl: [
+    { label: 'Jak się mówi', speak: (word) => `Jak się mówi ${word}?` },
+    { label: 'Znasz', speak: (word) => `Znasz ${word}?` },
+    { label: 'Jak powiedzieć', speak: (word) => `Jak powiedzieć ${word}?` },
+    { label: 'Potrafisz powiedzieć', speak: (word) => `Potrafisz powiedzieć ${word}?` },
+    { label: 'A może', speak: (word) => `A może ${word}?` },
+  ],
+  fr: [
+    { label: 'Comment dit-on', speak: (word) => `Comment dit-on ${word} ?` },
+    { label: 'Tu connais', speak: (word) => `Tu connais ${word} ?` },
+    { label: 'Tu sais dire', speak: (word) => `Tu sais dire ${word} ?` },
+    { label: 'Comment on dit', speak: (word) => `Comment on dit ${word} ?` },
+    { label: 'Et', speak: (word) => `Et ${word} ?` },
+  ],
+  es: [
+    { label: '¿Cómo se dice', speak: (word) => `¿Cómo se dice ${word}?` },
+    { label: '¿Conoces', speak: (word) => `¿Conoces ${word}?` },
+    { label: '¿Sabes decir', speak: (word) => `¿Sabes decir ${word}?` },
+    { label: '¿Cómo dirías', speak: (word) => `¿Cómo dirías ${word}?` },
+    { label: '¿Recuerdas', speak: (word) => `¿Recuerdas ${word}?` },
+  ],
+}
+
+function hookFor(index: number, code: LangCode): HookLine {
+  const lines = HOOKS[code]
+  const fallback: HookLine = {
+    label: 'How do you say',
+    speak: (word) => `How do you say ${word}?`,
+  }
+  return lines[index % lines.length] ?? fallback
+}
+
+function startLearnHook(index: number): void {
+  const word = feedWords[index]
+  if (!word || effectiveMode() !== 'learn') return
+
+  learnGeneration += 1
+  const generation = learnGeneration
+  window.clearTimeout(speakTimer)
+  window.clearTimeout(revealTimer)
+  stopSpeech()
+
+  if (!settings.sounds.reveal) {
+    feed.querySelectorAll('.card-learn').forEach((card) => {
+      card.classList.add('is-revealed')
+      card.classList.remove('speaking')
+      const learn = card.querySelector<HTMLElement>('[data-learn]')
+      learn?.classList.remove('is-blurred')
+      learn?.removeAttribute('aria-hidden')
+      const hint = card.querySelector('.hint')
+      if (hint) hint.textContent = 'Tap emoji to replay · swipe up'
+    })
+    speakWord(index)
+    return
+  }
+
+  feed.querySelectorAll('.card-learn').forEach((card) => {
+    card.classList.remove('is-revealed', 'speaking')
+    const learn = card.querySelector<HTMLElement>('[data-learn]')
+    if (learn) {
+      learn.classList.add('is-blurred')
+      learn.setAttribute('aria-hidden', 'true')
+    }
+    const hint = card.querySelector('.hint')
+    if (hint) hint.textContent = 'Listen · the word appears'
+  })
+
+  const card = feed.querySelector(`[data-index="${index}"]`)
+  card?.classList.add('speaking')
+  const hook = hookFor(index, settings.native)
+  const ask = card?.querySelector('.hook-ask')
+  const nativeWord = word.forms[settings.native]
+  if (ask) ask.textContent = hook.label
+  const nativeEl = card?.querySelector('[data-native]')
+  if (nativeEl) nativeEl.textContent = displayPromptWord(nativeWord)
+
+  const revealSoon = (delay: number): void => {
+    if (generation !== learnGeneration || activeIndex !== index) return
+    window.clearTimeout(revealTimer)
+    revealTimer = window.setTimeout(() => {
+      if (generation !== learnGeneration || activeIndex !== index) return
+      revealLearnCard(index)
+    }, delay)
+  }
+
+  if (!settings.sounds.voice) {
+    revealSoon(1300)
+    return
+  }
+
+  const native = getLanguage(settings.native)
+  const prompt = hook.speak(nativeWord)
+  speakTimer = window.setTimeout(() => {
+    if (generation !== learnGeneration || activeIndex !== index) return
+    speak(prompt, native.bcp47, native.voiceLangs, () => revealSoon(420))
+  }, 40)
+  revealSoon(Math.min(4200, Math.max(2200, 900 + prompt.length * 90)))
+}
+
+function revealLearnCard(index: number, force = false): void {
+  const word = feedWords[index]
+  const card = feed.querySelector<HTMLElement>(`[data-index="${index}"]`)
+  if (!word || !card) return
+
+  learnGeneration += 1
+  window.clearTimeout(revealTimer)
+  card.classList.add('is-revealed')
+  card.classList.remove('speaking')
+  const learn = card.querySelector<HTMLElement>('[data-learn]')
+  if (learn) {
+    learn.classList.remove('is-blurred')
+    learn.removeAttribute('aria-hidden')
+  }
+  const hint = card.querySelector('.hint')
+  if (hint) hint.textContent = 'Tap emoji to replay · swipe up'
+  speakWord(index, force)
+}
+
 function speakWord(index: number, force = false): void {
   const word = feedWords[index]
   if (!word) return
@@ -855,8 +1049,14 @@ function refreshWords(): void {
     if (!word) return
     const learn = card.querySelector('[data-learn]')
     const native = card.querySelector('[data-native]')
+    const ask = card.querySelector('.hook-ask')
     if (learn) learn.textContent = word.forms[settings.learning]
-    if (native) native.textContent = word.forms[settings.native]
+    if (native) {
+      native.textContent = settings.sounds.reveal
+        ? displayPromptWord(word.forms[settings.native])
+        : word.forms[settings.native]
+    }
+    if (ask) ask.textContent = hookFor(index, settings.native).label
   })
 }
 
@@ -946,6 +1146,9 @@ function refreshSoundSheet(): void {
   const voiceBtn = qs<HTMLButtonElement>('#toggle-voice')
   voiceBtn.textContent = settings.sounds.voice ? 'On' : 'Off'
   voiceBtn.setAttribute('aria-pressed', String(settings.sounds.voice))
+  const revealBtn = qs<HTMLButtonElement>('#toggle-reveal')
+  revealBtn.textContent = settings.sounds.reveal ? 'On' : 'Off'
+  revealBtn.setAttribute('aria-pressed', String(settings.sounds.reveal))
 
   SOUND_ACTIONS.forEach((action) => {
     const on = settings.sounds.enabled[action.id]
@@ -974,7 +1177,6 @@ function closeSettings(): void {
   } else {
     refreshChrome()
   }
-  if (settings.started && effectiveMode() === 'learn' && settings.sounds.voice) speakWord(activeIndex, true)
 }
 
 function normalizeAnswer(value: string): string {

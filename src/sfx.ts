@@ -7,6 +7,7 @@ export type SoundChoice = {
 
 export type SoundPrefs = {
   voice: boolean
+  reveal: boolean
   enabled: Record<SoundAction, boolean>
   choice: Record<SoundAction, string>
 }
@@ -52,6 +53,7 @@ export const SOUND_CHOICES: Record<SoundAction, SoundChoice[]> = {
 export function defaultSoundPrefs(): SoundPrefs {
   return {
     voice: true,
+    reveal: true,
     enabled: {
       scroll: true,
       correct: true,

@@ -1,4 +1,5 @@
 let unlocked = false
+let speakSeq = 0
 const heldUtterances: SpeechSynthesisUtterance[] = []
 
 const qualityBoost: Array<[RegExp, number]> = [
@@ -29,16 +30,24 @@ export function prefetchVoices(): void {
   })
 }
 
-export function speak(text: string, bcp47: string, voiceLangs: string[]): void {
-  if (!unlocked || !text) return
+export function speak(
+  text: string,
+  bcp47: string,
+  voiceLangs: string[],
+  onEnd?: () => void,
+): void {
+  if (!unlocked || !text) {
+    onEnd?.()
+    return
+  }
 
+  const seq = ++speakSeq
   if (speechSynthesis.speaking || speechSynthesis.pending) {
     speechSynthesis.cancel()
   }
-
   const utterance = new SpeechSynthesisUtterance(text)
   utterance.lang = bcp47
-  utterance.rate = 0.9
+  utterance.rate = 0.94
   utterance.pitch = 1
   utterance.volume = 1
 
@@ -48,12 +57,20 @@ export function speak(text: string, bcp47: string, voiceLangs: string[]): void {
     utterance.lang = voice.lang || bcp47
   }
 
+  const done = (): void => {
+    if (seq !== speakSeq) return
+    onEnd?.()
+  }
+  utterance.onend = done
+  utterance.onerror = done
+
   heldUtterances.push(utterance)
   if (heldUtterances.length > 3) heldUtterances.shift()
   speechSynthesis.speak(utterance)
 }
 
 export function stopSpeech(): void {
+  speakSeq += 1
   speechSynthesis.cancel()
 }
 
