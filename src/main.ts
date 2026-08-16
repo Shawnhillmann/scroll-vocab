@@ -973,14 +973,38 @@ function resetRevealRings(): void {
   })
 }
 
-function startRevealRing(card: Element, durationMs: number): void {
+function startRevealRing(card: Element, durationMs: number, onDone: () => void): void {
   const fill = card.querySelector<SVGCircleElement>('.reveal-ring-fill')
-  if (!fill) return
+  const duration = Math.max(400, durationMs)
+  card.classList.add('is-waiting')
+
+  let finished = false
+  const finish = (): void => {
+    if (finished) return
+    finished = true
+    fill?.removeEventListener('transitionend', onEnd)
+    window.clearTimeout(revealTimer)
+    onDone()
+  }
+  const onEnd = (event: TransitionEvent): void => {
+    if (!fill || event.target !== fill) return
+    if (event.propertyName && event.propertyName !== 'stroke-dashoffset') return
+    const left = Number.parseFloat(getComputedStyle(fill).strokeDashoffset)
+    if (Number.isFinite(left) && Math.abs(left) > 3) return
+    finish()
+  }
+
+  if (!fill) {
+    revealTimer = window.setTimeout(finish, duration)
+    return
+  }
+
   fill.style.transition = 'none'
   fill.style.strokeDashoffset = String(REVEAL_RING)
-  card.classList.add('is-waiting')
   void fill.getBoundingClientRect()
-  fill.style.transition = `stroke-dashoffset ${Math.max(400, durationMs)}ms linear`
+  fill.addEventListener('transitionend', onEnd)
+  revealTimer = window.setTimeout(finish, duration + 90)
+  fill.style.transition = `stroke-dashoffset ${duration}ms linear`
   fill.style.strokeDashoffset = '0'
 }
 
@@ -1040,31 +1064,33 @@ function startLearnHook(index: number): void {
   const nativeEl = card?.querySelector('[data-native]')
   if (nativeEl) nativeEl.textContent = displayPromptWord(nativeWord)
 
-  const afterAskMs = 1420
-  const revealSoon = (delay: number): void => {
-    if (generation !== learnGeneration || activeIndex !== index) return
-    window.clearTimeout(revealTimer)
-    revealTimer = window.setTimeout(() => {
+  const revealWhenRingCompletes = (durationMs: number): void => {
+    if (!card) {
+      revealTimer = window.setTimeout(() => {
+        if (generation !== learnGeneration || activeIndex !== index) return
+        revealLearnCard(index)
+      }, durationMs)
+      return
+    }
+    startRevealRing(card, durationMs, () => {
       if (generation !== learnGeneration || activeIndex !== index) return
       revealLearnCard(index)
-    }, delay)
+    })
   }
 
   if (!settings.sounds.voice) {
-    if (card) startRevealRing(card, 2300)
-    revealSoon(2300)
+    revealWhenRingCompletes(2300)
     return
   }
 
   const native = getLanguage(settings.native)
   const prompt = settings.sounds.ask ? hook.speak(nativeWord) : displayPromptWord(nativeWord)
   const waitMs = Math.min(5200, Math.max(2800, 1900 + prompt.length * 90))
-  if (card) startRevealRing(card, waitMs)
   speakTimer = window.setTimeout(() => {
     if (generation !== learnGeneration || activeIndex !== index) return
-    speak(prompt, native.bcp47, native.voiceLangs, () => revealSoon(afterAskMs))
+    speak(prompt, native.bcp47, native.voiceLangs)
   }, 40)
-  revealSoon(waitMs)
+  revealWhenRingCompletes(waitMs)
 }
 
 function revealLearnCard(index: number, force = false): void {
