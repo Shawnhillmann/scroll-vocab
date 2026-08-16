@@ -1,37 +1,98 @@
-let muted = false
+export type SoundAction = 'scroll' | 'correct' | 'wrong' | 'result'
+
+export type SoundChoice = {
+  id: string
+  label: string
+}
+
+export type SoundPrefs = {
+  voice: boolean
+  enabled: Record<SoundAction, boolean>
+  choice: Record<SoundAction, string>
+}
+
+export const SOUND_ACTIONS: { id: SoundAction; label: string; detail: string }[] = [
+  { id: 'scroll', label: 'Scroll', detail: 'When you swipe to the next card' },
+  { id: 'correct', label: 'Correct', detail: 'When an answer is right' },
+  { id: 'wrong', label: 'Incorrect', detail: 'When an answer is wrong' },
+  { id: 'result', label: 'Quiz end', detail: 'When a quiz finishes' },
+]
+
+export const SOUND_CHOICES: Record<SoundAction, SoundChoice[]> = {
+  scroll: [
+    { id: 'pop', label: 'Soft pop' },
+    { id: 'thud', label: 'Low thud' },
+    { id: 'click', label: 'Quiet click' },
+    { id: 'drip', label: 'Drip' },
+    { id: 'puff', label: 'Air puff' },
+  ],
+  correct: [
+    { id: 'up', label: 'Up beep' },
+    { id: 'ping', label: 'Ping' },
+    { id: 'chime', label: 'Chime' },
+    { id: 'boops', label: 'Boops' },
+    { id: 'glass', label: 'Glass' },
+  ],
+  wrong: [
+    { id: 'boop', label: 'Boop' },
+    { id: 'down', label: 'Down beep' },
+    { id: 'thump', label: 'Thump' },
+    { id: 'dull', label: 'Dull tap' },
+    { id: 'drop', label: 'Drop' },
+  ],
+  result: [
+    { id: 'rise', label: 'Rise' },
+    { id: 'sparkle', label: 'Sparkle' },
+    { id: 'ding', label: 'Ding' },
+    { id: 'glow', label: 'Glow' },
+    { id: 'finish', label: 'Finish' },
+  ],
+}
+
+export function defaultSoundPrefs(): SoundPrefs {
+  return {
+    voice: true,
+    enabled: {
+      scroll: true,
+      correct: true,
+      wrong: true,
+      result: true,
+    },
+    choice: {
+      scroll: 'pop',
+      correct: 'up',
+      wrong: 'boop',
+      result: 'rise',
+    },
+  }
+}
+
+export function isSoundAction(value: string): value is SoundAction {
+  return SOUND_ACTIONS.some((action) => action.id === value)
+}
+
+export function isSoundId(action: SoundAction, value: string): boolean {
+  return SOUND_CHOICES[action].some((choice) => choice.id === value)
+}
+
+let prefs = defaultSoundPrefs()
 let audioUnlocked = false
 let unlocking: Promise<void> | undefined
 let ctx: AudioContext | undefined
 let keepAlive: OscillatorNode | undefined
 
 const SAMPLE_RATE = 22050
-
-const pcm = {
-  correct: renderCorrect(),
-  wrong: renderWrong(),
-  scroll: renderScroll(),
-  result: renderResult(),
-  silence: renderSilence(),
-}
-
-type ClipName = 'correct' | 'wrong' | 'scroll' | 'result'
-const names: ClipName[] = ['correct', 'wrong', 'scroll', 'result']
-
-const clips: Record<ClipName, HTMLAudioElement> = {
-  correct: makeClip(pcm.correct),
-  wrong: makeClip(pcm.wrong),
-  scroll: makeClip(pcm.scroll),
-  result: makeClip(pcm.result),
-}
-const silenceClip = makeClip(pcm.silence)
-const buffers: Partial<Record<ClipName, AudioBuffer>> = {}
+const catalog = buildCatalog()
+const buffers: Record<string, AudioBuffer> = {}
+const clips: Record<string, HTMLAudioElement> = {}
+const silenceClip = makeClip(renderSilence())
 
 type WindowWithWebkit = Window & {
   webkitAudioContext?: typeof AudioContext
 }
 
-export function setSfxMuted(value: boolean): void {
-  muted = value
+export function applySoundPrefs(next: SoundPrefs): void {
+  prefs = next
 }
 
 export function unlockSfx(): Promise<void> {
@@ -49,19 +110,20 @@ export function unlockSfx(): Promise<void> {
         await audio.resume()
         tickUnlock(audio)
         startKeepAlive(audio)
-        for (const name of names) {
-          buffers[name] = toBuffer(audio, pcm[name])
+        for (const [id, samples] of Object.entries(catalog)) {
+          buffers[id] = toBuffer(audio, samples)
         }
       }
 
-      await Promise.all([...names.map((name) => clips[name]), silenceClip].map(primeClip))
+      const selected = SOUND_ACTIONS.map((action) => clipFor(prefs.choice[action.id]))
+      await Promise.all([...selected, silenceClip].map(primeClip))
       silenceClip.loop = true
       silenceClip.volume = 0.001
       await silenceClip.play()
       audioUnlocked = true
     } catch (err) {
       console.warn('Audio unlock failed', err)
-      audioUnlocked = Boolean(audio && buffers.correct)
+      audioUnlocked = Boolean(audio && Object.keys(buffers).length)
     } finally {
       unlocking = undefined
     }
@@ -71,33 +133,41 @@ export function unlockSfx(): Promise<void> {
 }
 
 export function playScroll(): void {
-  fire('scroll')
+  playAction('scroll')
 }
 
 export function playCorrect(): void {
-  fire('correct')
+  playAction('correct')
 }
 
 export function playWrong(): void {
-  fire('wrong')
+  playAction('wrong')
 }
 
 export function playResult(): void {
-  fire('result')
+  playAction('result')
 }
 
-function fire(name: ClipName): void {
-  if (muted) return
+export function previewSound(id: string): void {
+  void unlockSfx()
+  fire(id)
+}
 
+function playAction(action: SoundAction): void {
+  if (!prefs.enabled[action]) return
+  fire(prefs.choice[action])
+}
+
+function fire(id: string): void {
   const audio = ctx
-  const buffer = buffers[name]
+  const buffer = buffers[id]
   if (audio?.state === 'running' && buffer) {
     startBuffer(audio, buffer)
     return
   }
 
   if (audio?.state === 'suspended') void audio.resume()
-  trigger(clips[name])
+  trigger(clipFor(id))
 }
 
 function startBuffer(audio: AudioContext, buffer: AudioBuffer): void {
@@ -108,7 +178,6 @@ function startBuffer(audio: AudioContext, buffer: AudioBuffer): void {
 }
 
 function trigger(clip: HTMLAudioElement): void {
-  if (muted) return
   clip.pause()
   clip.currentTime = 0
   clip.volume = 1
@@ -129,6 +198,14 @@ function primeClip(clip: HTMLAudioElement): Promise<void> {
     clip.currentTime = 0
     clip.volume = 1
   })
+}
+
+function clipFor(id: string): HTMLAudioElement {
+  const existing = clips[id]
+  if (existing) return existing
+  const clip = makeClip(catalog[id] ?? catalog.pop ?? new Float32Array(1))
+  clips[id] = clip
+  return clip
 }
 
 function getCtx(): AudioContext | undefined {
@@ -176,28 +253,29 @@ function makeClip(samples: Float32Array): HTMLAudioElement {
   return clip
 }
 
-function renderCorrect(): Float32Array {
-  return mix(tone(784, 0.07, 0.55), tone(1175, 0.09, 0.42))
-}
-
-function renderWrong(): Float32Array {
-  return tone(270, 0.07, 0.55)
-}
-
-function renderScroll(): Float32Array {
-  const seconds = 0.028
-  const samples = new Float32Array(Math.floor(seconds * SAMPLE_RATE))
-  for (let i = 0; i < samples.length; i++) {
-    const t = i / SAMPLE_RATE
-    const freq = 980 + (420 * t) / seconds
-    const env = Math.max(0, 1 - t / seconds)
-    samples[i] = Math.sin(2 * Math.PI * freq * t) * 0.5 * env
+function buildCatalog(): Record<string, Float32Array> {
+  return {
+    pop: pluck(480, 0.03, 0.16),
+    thud: pluck(168, 0.045, 0.18),
+    click: mix(noise(0.012, 0.09), pluck(1480, 0.012, 0.1)),
+    drip: pluck(760, 0.04, 0.13),
+    puff: noise(0.028, 0.1),
+    up: mix(tone(784, 0.05, 0.22), pad(tone(988, 0.07, 0.2), 0.06)),
+    ping: tone(1047, 0.07, 0.2),
+    chime: mix(tone(523, 0.09, 0.16), tone(784, 0.1, 0.14)),
+    boops: mix(tone(659, 0.05, 0.2), pad(tone(784, 0.07, 0.18), 0.07)),
+    glass: pluck(1397, 0.05, 0.16),
+    boop: tone(392, 0.09, 0.2),
+    down: mix(tone(440, 0.06, 0.2), pad(tone(330, 0.09, 0.18), 0.07)),
+    thump: pluck(210, 0.07, 0.2),
+    dull: tone(311, 0.07, 0.18),
+    drop: mix(tone(370, 0.05, 0.18), pad(tone(277, 0.09, 0.16), 0.06)),
+    rise: mix(tone(659, 0.05, 0.18), pad(tone(784, 0.06, 0.17), 0.07), pad(tone(988, 0.08, 0.16), 0.14)),
+    sparkle: mix(tone(784, 0.05, 0.16), tone(1175, 0.07, 0.12)),
+    ding: tone(880, 0.08, 0.18),
+    glow: mix(tone(523, 0.07, 0.16), pad(tone(659, 0.1, 0.15), 0.08)),
+    finish: mix(tone(659, 0.06, 0.16), pad(tone(988, 0.1, 0.15), 0.09)),
   }
-  return samples
-}
-
-function renderResult(): Float32Array {
-  return mix(tone(659, 0.08, 0.4), pad(tone(880, 0.12, 0.38), 0.07))
 }
 
 function renderSilence(): Float32Array {
@@ -213,6 +291,29 @@ function tone(freq: number, seconds: number, volume: number): Float32Array {
     if (i < fade) env = i / fade
     else if (i > samples.length - fade) env = (samples.length - i) / fade
     samples[i] = Math.sin(2 * Math.PI * freq * t) * volume * env
+  }
+  return samples
+}
+
+function pluck(freq: number, seconds: number, volume: number): Float32Array {
+  const samples = new Float32Array(Math.floor(seconds * SAMPLE_RATE))
+  for (let i = 0; i < samples.length; i++) {
+    const t = i / SAMPLE_RATE
+    const env = Math.exp(-t / (seconds * 0.26)) * Math.max(0, 1 - t / seconds)
+    samples[i] = Math.sin(2 * Math.PI * freq * t) * volume * env
+  }
+  return samples
+}
+
+function noise(seconds: number, volume: number): Float32Array {
+  const samples = new Float32Array(Math.floor(seconds * SAMPLE_RATE))
+  let prev = 0
+  for (let i = 0; i < samples.length; i++) {
+    const t = i / SAMPLE_RATE
+    const env = Math.exp(-t / (seconds * 0.2)) * Math.max(0, 1 - t / seconds)
+    const white = Math.random() * 2 - 1
+    prev = prev * 0.55 + white * 0.45
+    samples[i] = prev * volume * env
   }
   return samples
 }

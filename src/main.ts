@@ -16,7 +16,21 @@ import {
   type Word,
 } from './words.ts'
 import { prefetchVoices, speak, stopSpeech, unlockSpeech } from './speech.ts'
-import { playCorrect, playResult, playScroll, playWrong, setSfxMuted, unlockSfx } from './sfx.ts'
+import {
+  applySoundPrefs,
+  defaultSoundPrefs,
+  isSoundAction,
+  isSoundId,
+  playCorrect,
+  playResult,
+  playScroll,
+  playWrong,
+  previewSound,
+  SOUND_ACTIONS,
+  SOUND_CHOICES,
+  unlockSfx,
+  type SoundPrefs,
+} from './sfx.ts'
 
 const STORAGE_KEY = 'slowo-settings'
 
@@ -28,6 +42,7 @@ type Settings = {
   started: boolean
   reviewingKnown: boolean
   knownIds: string[]
+  sounds: SoundPrefs
 }
 
 function defaultSettings(): Settings {
@@ -39,6 +54,7 @@ function defaultSettings(): Settings {
     started: false,
     reviewingKnown: false,
     knownIds: [],
+    sounds: defaultSoundPrefs(),
   }
 }
 
@@ -59,6 +75,7 @@ function loadSettings(): Settings {
       settings.knownIds = parsed.knownIds.filter((id): id is string => typeof id === 'string' && valid.has(id))
     }
     settings.started = Boolean(parsed.started && settings.category && hasMode)
+    settings.sounds = readSoundPrefs(parsed.sounds)
   } catch {
     /* ignore corrupt storage */
   }
@@ -68,11 +85,28 @@ function loadSettings(): Settings {
   return settings
 }
 
+function readSoundPrefs(raw: unknown): SoundPrefs {
+  const sounds = defaultSoundPrefs()
+  if (!raw || typeof raw !== 'object') return sounds
+  const parsed = raw as Partial<SoundPrefs> & {
+    enabled?: Partial<SoundPrefs['enabled']>
+    choice?: Partial<SoundPrefs['choice']>
+  }
+  sounds.voice = parsed.voice !== false
+  for (const action of SOUND_ACTIONS) {
+    sounds.enabled[action.id] = parsed.enabled?.[action.id] !== false
+    const choice = parsed.choice?.[action.id]
+    if (choice && isSoundId(action.id, choice)) sounds.choice[action.id] = choice
+  }
+  return sounds
+}
+
 function otherLanguage(code: LangCode): LangCode {
   return languages.find((language) => language.code !== code)?.code ?? 'en'
 }
 
 function saveSettings(): void {
+  applySoundPrefs(settings.sounds)
   localStorage.setItem(STORAGE_KEY, JSON.stringify(settings))
 }
 
@@ -86,10 +120,10 @@ function activePool(): Word[] {
 }
 
 const settings = loadSettings()
+applySoundPrefs(settings.sounds)
 let feedWords: Word[] = []
 let feedKey = ''
 let activeIndex = 0
-let autoplay = true
 let speakTimer = 0
 let advanceTimer = 0
 let observer: IntersectionObserver | undefined
@@ -109,7 +143,7 @@ app.innerHTML = `
         <span id="lang-label"></span>
       </button>
       <span class="chip progress" id="progress"></span>
-      <button class="icon-btn" type="button" id="mute" aria-label="Mute autoplay">🔊</button>
+      <button class="icon-btn" type="button" id="open-sounds" aria-label="Sound settings">🔊</button>
     </div>
 
     <div class="feed" id="feed"></div>
@@ -184,6 +218,25 @@ app.innerHTML = `
       </div>
       <button class="start" type="button" id="save-settings">Done</button>
     </section>
+
+    <section class="sheet sound-sheet" id="sounds" hidden>
+      <div class="gate-body">
+        <button class="chip" type="button" id="close-sounds">Close</button>
+        <h2>Sounds</h2>
+        <p class="lede">Turn each one on or off, then pick a beep from the list to hear it.</p>
+        <div class="field">
+          <div class="sound-head">
+            <div>
+              <label>Word voice</label>
+              <p class="field-note">Speaks the word you’re learning</p>
+            </div>
+            <button class="choice" type="button" id="toggle-voice">On</button>
+          </div>
+        </div>
+        <div id="sound-fields"></div>
+      </div>
+      <button class="start" type="button" id="save-sounds">Done</button>
+    </section>
   </div>
 `
 
@@ -210,13 +263,34 @@ feed.addEventListener(
 const gate = qs<HTMLElement>('#gate')
 const sheet = qs<HTMLElement>('#sheet')
 const knownSheet = qs<HTMLElement>('#known')
+const soundSheet = qs<HTMLElement>('#sounds')
 const results = qs<HTMLElement>('#results')
 const langLabel = qs<HTMLElement>('#lang-label')
 const progress = qs<HTMLElement>('#progress')
-const muteBtn = qs<HTMLButtonElement>('#mute')
+const soundBtn = qs<HTMLButtonElement>('#open-sounds')
 const startBtn = qs<HTMLButtonElement>('#start')
 const startKnownBtn = qs<HTMLButtonElement>('#start-known')
 const openKnownBtn = qs<HTMLButtonElement>('#open-known')
+const soundFields = qs<HTMLElement>('#sound-fields')
+
+soundFields.innerHTML = SOUND_ACTIONS.map(
+  (action) => `
+    <div class="field sound-field" data-sound-field="${action.id}">
+      <div class="sound-head">
+        <div>
+          <label>${action.label}</label>
+          <p class="field-note">${action.detail}</p>
+        </div>
+        <button class="choice" type="button" data-sound-on="${action.id}">On</button>
+      </div>
+      <select class="sound-select" data-sound-action="${action.id}" aria-label="${action.label} sound">
+        ${SOUND_CHOICES[action.id]
+          .map((choice) => `<option value="${choice.id}">${choice.label}</option>`)
+          .join('')}
+      </select>
+    </div>
+  `,
+).join('')
 
 document.querySelectorAll('[data-lang-role]').forEach((root) => {
   root.innerHTML = languages
@@ -337,12 +411,39 @@ qs('#open-settings').addEventListener('click', () => {
 qs('#close-settings').addEventListener('click', closeSettings)
 qs('#save-settings').addEventListener('click', closeSettings)
 
-muteBtn.addEventListener('click', () => {
-  autoplay = !autoplay
-  setSfxMuted(!autoplay)
-  muteBtn.textContent = autoplay ? '🔊' : '🔇'
-  muteBtn.setAttribute('aria-label', autoplay ? 'Mute autoplay' : 'Unmute autoplay')
-  if (!autoplay) stopSpeech()
+soundBtn.addEventListener('click', () => {
+  unlockSfx()
+  soundSheet.hidden = false
+  refreshSoundSheet()
+})
+qs('#close-sounds').addEventListener('click', closeSoundSheet)
+qs('#save-sounds').addEventListener('click', closeSoundSheet)
+qs('#toggle-voice').addEventListener('click', () => {
+  settings.sounds.voice = !settings.sounds.voice
+  if (!settings.sounds.voice) stopSpeech()
+  saveSettings()
+  refreshSoundSheet()
+})
+soundFields.addEventListener('click', (event) => {
+  const target = (event.target as HTMLElement).closest<HTMLButtonElement>('[data-sound-on]')
+  if (!target) return
+  const toggle = target.dataset.soundOn
+  if (!toggle || !isSoundAction(toggle)) return
+  settings.sounds.enabled[toggle] = !settings.sounds.enabled[toggle]
+  saveSettings()
+  refreshSoundSheet()
+})
+soundFields.addEventListener('change', (event) => {
+  const select = event.target
+  if (!(select instanceof HTMLSelectElement)) return
+  const action = select.dataset.soundAction
+  const soundId = select.value
+  if (!action || !isSoundAction(action) || !isSoundId(action, soundId)) return
+  settings.sounds.choice[action] = soundId
+  settings.sounds.enabled[action] = true
+  saveSettings()
+  refreshSoundSheet()
+  previewSound(soundId)
 })
 
 function armAudio(): void {
@@ -387,6 +488,7 @@ async function beginSession(reviewing: boolean): Promise<void> {
   gate.hidden = true
   knownSheet.hidden = true
   sheet.hidden = true
+  soundSheet.hidden = true
   if (effectiveMode() === 'learn') speakWord(0, true)
 }
 
@@ -424,6 +526,7 @@ function goHome(): void {
   saveSettings()
   knownSheet.hidden = true
   sheet.hidden = true
+  soundSheet.hidden = true
   gate.hidden = false
   refreshChrome()
 }
@@ -560,7 +663,7 @@ function bindFeed(): void {
 
       activeIndex = index
       refreshChrome()
-      if (settings.started && effectiveMode() === 'learn' && autoplay) speakWord(index)
+      if (settings.started && effectiveMode() === 'learn' && settings.sounds.voice) speakWord(index)
     },
     { root: feed, threshold: 0.72 },
   )
@@ -724,7 +827,7 @@ function speakWord(index: number, force = false): void {
     feed.querySelector(`[data-index="${index}"]`)?.classList.remove('speaking')
   }, 900)
 
-  if (!force && !autoplay) return
+  if (!force && !settings.sounds.voice) return
 
   window.clearTimeout(speakTimer)
   speakTimer = window.setTimeout(() => {
@@ -818,7 +921,37 @@ function refreshChrome(): void {
     choice.setAttribute('aria-pressed', String((choice as HTMLElement).dataset.mode === settings.mode))
   })
 
+  refreshSoundSheet()
   refreshWords()
+}
+
+function refreshSoundSheet(): void {
+  const anyOn =
+    settings.sounds.voice || SOUND_ACTIONS.some((action) => settings.sounds.enabled[action.id])
+  soundBtn.textContent = anyOn ? '🔊' : '🔇'
+  soundBtn.setAttribute('aria-label', 'Sound settings')
+
+  const voiceBtn = qs<HTMLButtonElement>('#toggle-voice')
+  voiceBtn.textContent = settings.sounds.voice ? 'On' : 'Off'
+  voiceBtn.setAttribute('aria-pressed', String(settings.sounds.voice))
+
+  SOUND_ACTIONS.forEach((action) => {
+    const on = settings.sounds.enabled[action.id]
+    const field = soundFields.querySelector(`[data-sound-field="${action.id}"]`)
+    field?.classList.toggle('is-off', !on)
+    const toggle = soundFields.querySelector<HTMLButtonElement>(`[data-sound-on="${action.id}"]`)
+    if (toggle) {
+      toggle.textContent = on ? 'On' : 'Off'
+      toggle.setAttribute('aria-pressed', String(on))
+    }
+    const select = soundFields.querySelector<HTMLSelectElement>(`[data-sound-action="${action.id}"]`)
+    if (select) select.value = settings.sounds.choice[action.id]
+  })
+}
+
+function closeSoundSheet(): void {
+  saveSettings()
+  soundSheet.hidden = true
 }
 
 function closeSettings(): void {
@@ -829,7 +962,7 @@ function closeSettings(): void {
   } else {
     refreshChrome()
   }
-  if (settings.started && effectiveMode() === 'learn' && autoplay) speakWord(activeIndex, true)
+  if (settings.started && effectiveMode() === 'learn' && settings.sounds.voice) speakWord(activeIndex, true)
 }
 
 function normalizeAnswer(value: string): string {
