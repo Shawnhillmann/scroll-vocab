@@ -132,7 +132,12 @@ export function unlockSfx(): Promise<void> {
   return unlocking
 }
 
+let lastScrollPlay = 0
+
 export function playScroll(): void {
+  const now = performance.now()
+  if (now - lastScrollPlay < 160) return
+  lastScrollPlay = now
   playAction('scroll')
 }
 

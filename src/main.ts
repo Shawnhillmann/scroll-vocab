@@ -242,6 +242,18 @@ app.innerHTML = `
 
 const feed = qs<HTMLElement>('#feed')
 let swipeSoundIndex = 0
+let swipeSoundTimer = 0
+
+function currentCardIndex(): number {
+  const height = feed.clientHeight
+  if (!height) return 0
+  return Math.round(Math.max(0, feed.scrollTop) / height)
+}
+
+function settleSwipeSound(): void {
+  swipeSoundIndex = currentCardIndex()
+}
+
 feed.addEventListener(
   'scroll',
   () => {
@@ -252,14 +264,13 @@ feed.addEventListener(
     if (risingIndex > swipeSoundIndex) {
       playScroll()
       swipeSoundIndex = risingIndex
-      return
     }
-    if (progress <= swipeSoundIndex - 0.45) {
-      swipeSoundIndex = Math.round(progress)
-    }
+    window.clearTimeout(swipeSoundTimer)
+    swipeSoundTimer = window.setTimeout(settleSwipeSound, 220)
   },
   { passive: true },
 )
+feed.addEventListener('scrollend', settleSwipeSound)
 const gate = qs<HTMLElement>('#gate')
 const sheet = qs<HTMLElement>('#sheet')
 const knownSheet = qs<HTMLElement>('#known')
@@ -576,6 +587,7 @@ function renderFeed(startId?: string): void {
   )
   activeIndex = startIndex === -1 ? 0 : startIndex
   swipeSoundIndex = activeIndex
+  window.clearTimeout(swipeSoundTimer)
 
   if (!feedWords.length) {
     const category = getCategory(settings.category)
