@@ -773,10 +773,12 @@ function cardMarkup(word: Word, index: number, pool: Word[]): string {
            <p class="hook-native" data-native>${escapeHtml(displayPromptWord(word.forms[settings.native]))}</p>
          </div>
          <button class="emoji-hit" type="button" aria-label="Replay pronunciation">
+           ${revealRingMarkup()}
            <span class="emoji">${word.emoji}</span>
          </button>
          <p class="learn is-blurred" data-learn aria-hidden="true">${answer}</p>`
       : `<button class="emoji-hit" type="button" aria-label="Replay pronunciation">
+           ${revealRingMarkup()}
            <span class="emoji">${word.emoji}</span>
          </button>
          <p class="learn" data-learn>${answer}</p>
@@ -952,6 +954,44 @@ function hookFor(index: number, code: LangCode): HookLine {
   return lines[index % lines.length] ?? fallback
 }
 
+function revealRingMarkup(): string {
+  return `
+    <svg class="reveal-ring" viewBox="0 0 100 100" aria-hidden="true">
+      <circle class="reveal-ring-track" cx="50" cy="50" r="46"></circle>
+      <circle class="reveal-ring-fill" cx="50" cy="50" r="46"></circle>
+    </svg>
+  `
+}
+
+const REVEAL_RING = 2 * Math.PI * 46
+
+function resetRevealRings(): void {
+  feed.querySelectorAll('.card-learn').forEach((card) => card.classList.remove('is-waiting'))
+  feed.querySelectorAll<SVGCircleElement>('.reveal-ring-fill').forEach((fill) => {
+    fill.style.transition = 'none'
+    fill.style.strokeDashoffset = String(REVEAL_RING)
+  })
+}
+
+function startRevealRing(card: Element, durationMs: number): void {
+  const fill = card.querySelector<SVGCircleElement>('.reveal-ring-fill')
+  if (!fill) return
+  fill.style.transition = 'none'
+  fill.style.strokeDashoffset = String(REVEAL_RING)
+  card.classList.add('is-waiting')
+  void fill.getBoundingClientRect()
+  fill.style.transition = `stroke-dashoffset ${Math.max(400, durationMs)}ms linear`
+  fill.style.strokeDashoffset = '0'
+}
+
+function finishRevealRing(card: Element): void {
+  const fill = card.querySelector<SVGCircleElement>('.reveal-ring-fill')
+  card.classList.remove('is-waiting')
+  if (!fill) return
+  fill.style.transition = 'stroke-dashoffset 180ms ease'
+  fill.style.strokeDashoffset = '0'
+}
+
 function startLearnHook(index: number): void {
   const word = feedWords[index]
   if (!word || effectiveMode() !== 'learn') return
@@ -961,11 +1001,12 @@ function startLearnHook(index: number): void {
   window.clearTimeout(speakTimer)
   window.clearTimeout(revealTimer)
   stopSpeech()
+  resetRevealRings()
 
   if (!settings.sounds.reveal) {
     feed.querySelectorAll('.card-learn').forEach((card) => {
       card.classList.add('is-revealed')
-      card.classList.remove('speaking')
+      card.classList.remove('speaking', 'is-waiting')
       const learn = card.querySelector<HTMLElement>('[data-learn]')
       learn?.classList.remove('is-blurred')
       learn?.removeAttribute('aria-hidden')
@@ -977,7 +1018,7 @@ function startLearnHook(index: number): void {
   }
 
   feed.querySelectorAll('.card-learn').forEach((card) => {
-    card.classList.remove('is-revealed', 'speaking')
+    card.classList.remove('is-revealed', 'speaking', 'is-waiting')
     const learn = card.querySelector<HTMLElement>('[data-learn]')
     if (learn) {
       learn.classList.add('is-blurred')
@@ -1010,17 +1051,20 @@ function startLearnHook(index: number): void {
   }
 
   if (!settings.sounds.voice) {
+    if (card) startRevealRing(card, 2300)
     revealSoon(2300)
     return
   }
 
   const native = getLanguage(settings.native)
   const prompt = settings.sounds.ask ? hook.speak(nativeWord) : displayPromptWord(nativeWord)
+  const waitMs = Math.min(5200, Math.max(2800, 1900 + prompt.length * 90))
+  if (card) startRevealRing(card, waitMs)
   speakTimer = window.setTimeout(() => {
     if (generation !== learnGeneration || activeIndex !== index) return
     speak(prompt, native.bcp47, native.voiceLangs, () => revealSoon(afterAskMs))
   }, 40)
-  revealSoon(Math.min(5200, Math.max(2800, 1900 + prompt.length * 90)))
+  revealSoon(waitMs)
 }
 
 function revealLearnCard(index: number, force = false): void {
@@ -1032,6 +1076,7 @@ function revealLearnCard(index: number, force = false): void {
   window.clearTimeout(revealTimer)
   card.classList.add('is-revealed')
   card.classList.remove('speaking')
+  finishRevealRing(card)
   const learn = card.querySelector<HTMLElement>('[data-learn]')
   if (learn) {
     learn.classList.remove('is-blurred')
