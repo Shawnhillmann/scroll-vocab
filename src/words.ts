@@ -1,5 +1,13 @@
 export type LangCode = 'en' | 'pl' | 'fr' | 'es'
 export type CategoryId = 'home' | 'animals' | 'city'
+export type ModeId = 'learn' | 'choice' | 'type'
+
+export type Mode = {
+  id: ModeId
+  label: string
+  detail: string
+  emoji: string
+}
 
 export type LanguageOption = {
   code: LangCode
@@ -58,6 +66,12 @@ export const categories: Category[] = [
   { id: 'home', label: 'Home', emoji: '🏠' },
   { id: 'animals', label: 'Animals', emoji: '🐾' },
   { id: 'city', label: 'City', emoji: '🏙️' },
+]
+
+export const modes: Mode[] = [
+  { id: 'learn', label: 'Learn', detail: 'Scroll, see, and hear each word', emoji: '📖' },
+  { id: 'choice', label: 'Multiple choice', detail: 'Pick the right word from three', emoji: '✅' },
+  { id: 'type', label: 'Typing', detail: 'Type the word yourself', emoji: '⌨️' },
 ]
 
 function word(
@@ -150,4 +164,8 @@ export function isLangCode(value: string): value is LangCode {
 
 export function isCategoryId(value: string): value is CategoryId {
   return categories.some((category) => category.id === value)
+}
+
+export function isModeId(value: string): value is ModeId {
+  return modes.some((mode) => mode.id === value)
 }

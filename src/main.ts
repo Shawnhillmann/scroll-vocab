@@ -5,10 +5,13 @@ import {
   getLanguage,
   isCategoryId,
   isLangCode,
+  isModeId,
   languages,
+  modes,
   wordsInCategory,
   type CategoryId,
   type LangCode,
+  type ModeId,
   type Word,
 } from './words.ts'
 import { prefetchVoices, speak, stopSpeech, unlockSpeech } from './speech.ts'
@@ -19,11 +22,12 @@ type Settings = {
   native: LangCode
   learning: LangCode
   category: CategoryId | null
+  mode: ModeId
   started: boolean
 }
 
 function defaultSettings(): Settings {
-  return { native: 'en', learning: 'pl', category: null, started: false }
+  return { native: 'en', learning: 'pl', category: null, mode: 'learn', started: false }
 }
 
 function loadSettings(): Settings {
@@ -35,7 +39,9 @@ function loadSettings(): Settings {
     if (parsed.native && isLangCode(parsed.native)) settings.native = parsed.native
     if (parsed.learning && isLangCode(parsed.learning)) settings.learning = parsed.learning
     if (parsed.category && isCategoryId(parsed.category)) settings.category = parsed.category
-    settings.started = Boolean(parsed.started && settings.category)
+    const hasMode = Boolean(parsed.mode && isModeId(parsed.mode))
+    if (hasMode && parsed.mode) settings.mode = parsed.mode
+    settings.started = Boolean(parsed.started && settings.category && hasMode)
   } catch {
     /* ignore corrupt storage */
   }
@@ -55,9 +61,11 @@ function saveSettings(): void {
 
 const settings = loadSettings()
 let feedWords: Word[] = []
+let feedKey = ''
 let activeIndex = 0
 let autoplay = true
 let speakTimer = 0
+let advanceTimer = 0
 let observer: IntersectionObserver | undefined
 
 prefetchVoices()
@@ -80,7 +88,7 @@ app.innerHTML = `
     <section class="gate" id="gate" ${settings.started ? 'hidden' : ''}>
       <div class="gate-body">
         <p class="brand">Słowo</p>
-        <p class="lede">Pick the language you know, the one you want to learn, then a category. Scroll one word at a time.</p>
+        <p class="lede">Pick your languages, a category, then how you want to practice.</p>
         <div class="field">
           <label>I speak</label>
           <div class="choices" data-lang-role="native"></div>
@@ -90,8 +98,12 @@ app.innerHTML = `
           <div class="choices" data-lang-role="learning"></div>
         </div>
         <div class="field">
-          <label>Start with</label>
+          <label>Category</label>
           <div class="category-grid" data-category-choices></div>
+        </div>
+        <div class="field">
+          <label>Practice</label>
+          <div class="category-grid" data-mode-choices></div>
         </div>
       </div>
       <button class="start" type="button" id="start">Start scrolling</button>
@@ -112,6 +124,10 @@ app.innerHTML = `
         <div class="field">
           <label>Category</label>
           <div class="category-grid" data-category-choices></div>
+        </div>
+        <div class="field">
+          <label>Practice</label>
+          <div class="category-grid" data-mode-choices></div>
         </div>
       </div>
       <button class="start" type="button" id="save-settings">Done</button>
@@ -156,6 +172,22 @@ document.querySelectorAll('[data-category-choices]').forEach((root) => {
     .join('')
 })
 
+document.querySelectorAll('[data-mode-choices]').forEach((root) => {
+  root.innerHTML = modes
+    .map(
+      (mode) => `
+        <button class="category-card" type="button" data-mode="${mode.id}">
+          <span class="category-emoji">${mode.emoji}</span>
+          <span class="category-meta">
+            <span>${mode.label}</span>
+            <span class="category-count">${mode.detail}</span>
+          </span>
+        </button>
+      `,
+    )
+    .join('')
+})
+
 document.querySelectorAll('[data-lang-role]').forEach((root) => {
   root.addEventListener('click', (event) => {
     const button = (event.target as HTMLElement).closest<HTMLButtonElement>('[data-code]')
@@ -175,6 +207,15 @@ document.querySelectorAll('[data-category-choices]').forEach((root) => {
   })
 })
 
+document.querySelectorAll('[data-mode-choices]').forEach((root) => {
+  root.addEventListener('click', (event) => {
+    const button = (event.target as HTMLElement).closest<HTMLButtonElement>('[data-mode]')
+    if (!button || !isModeId(button.dataset.mode ?? '')) return
+    settings.mode = button.dataset.mode as ModeId
+    refreshChrome()
+  })
+})
+
 qs('#start').addEventListener('click', () => {
   if (!settings.category) return
   unlockSpeech()
@@ -182,7 +223,7 @@ qs('#start').addEventListener('click', () => {
   saveSettings()
   renderFeed()
   gate.hidden = true
-  speakWord(0, true)
+  if (settings.mode === 'learn') speakWord(0, true)
 })
 
 qs('#open-settings').addEventListener('click', () => {
@@ -203,6 +244,7 @@ feed.addEventListener('pointerdown', () => unlockSpeech(), { once: true })
 
 window.addEventListener('keydown', (event) => {
   if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') return
+  if (event.target instanceof HTMLInputElement) return
   event.preventDefault()
   const next = event.key === 'ArrowDown' ? activeIndex + 1 : activeIndex - 1
   const card = feed.querySelector<HTMLElement>(`[data-index="${next}"]`)
@@ -224,31 +266,52 @@ function setLearning(code: LangCode): void {
   refreshChrome()
 }
 
+function currentFeedKey(): string {
+  return `${settings.category}|${settings.mode}|${settings.learning}|${settings.native}`
+}
+
 function renderFeed(): void {
   if (!settings.category) return
 
   observer?.disconnect()
-  feedWords = wordsInCategory(settings.category)
+  window.clearTimeout(advanceTimer)
+  const pool = wordsInCategory(settings.category)
+  feedWords = settings.mode === 'learn' ? pool : shuffled(pool)
+  feedKey = currentFeedKey()
   activeIndex = 0
-  feed.innerHTML = feedWords
-    .map(
-      (word, index) => `
-      <article class="card" data-index="${index}" style="background:${word.tint}">
-        <button class="emoji-hit" type="button" aria-label="Replay pronunciation">
-          <span class="emoji">${word.emoji}</span>
-        </button>
-        <p class="learn" data-learn></p>
-        <p class="native" data-native></p>
-        <p class="hint">${index === 0 ? 'Tap emoji to replay · swipe up' : 'Tap to replay'}</p>
-      </article>
-    `,
-    )
-    .join('')
+  feed.innerHTML = feedWords.map((word, index) => cardMarkup(word, index, pool)).join('')
 
   feed.querySelectorAll<HTMLElement>('.emoji-hit').forEach((button, index) => {
     button.addEventListener('click', () => {
+      const card = button.closest('.card')
+      if (settings.mode !== 'learn' && !card?.classList.contains('answered')) return
       unlockSpeech()
       speakWord(index, true)
+    })
+  })
+
+  feed.querySelectorAll<HTMLButtonElement>('.quiz-option').forEach((button) => {
+    button.addEventListener('click', () => {
+      const card = button.closest<HTMLElement>('.card')
+      if (!card || card.classList.contains('answered')) return
+      unlockSpeech()
+      gradeCard(card, button.dataset.value ?? '')
+    })
+  })
+
+  feed.querySelectorAll<HTMLFormElement>('.type-form').forEach((form) => {
+    const input = form.querySelector('input')
+    input?.addEventListener('focus', () => {
+      window.setTimeout(() => {
+        input.scrollIntoView({ block: 'center', behavior: 'smooth' })
+      }, 280)
+    })
+    form.addEventListener('submit', (event) => {
+      event.preventDefault()
+      const card = form.closest<HTMLElement>('.card')
+      if (!card || card.classList.contains('answered')) return
+      unlockSpeech()
+      gradeCard(card, input?.value ?? '')
     })
   })
 
@@ -265,7 +328,7 @@ function renderFeed(): void {
 
       activeIndex = index
       refreshChrome()
-      if (settings.started && autoplay) speakWord(index)
+      if (settings.started && settings.mode === 'learn' && autoplay) speakWord(index)
     },
     { root: feed, threshold: 0.72 },
   )
@@ -273,6 +336,120 @@ function renderFeed(): void {
   feed.querySelectorAll('.card').forEach((card) => observer?.observe(card))
   feed.scrollTop = 0
   refreshChrome()
+}
+
+function cardMarkup(word: Word, index: number, pool: Word[]): string {
+  const answer = escapeHtml(word.forms[settings.learning])
+  const native = escapeHtml(word.forms[settings.native])
+  const quiz = settings.mode !== 'learn'
+  const hint =
+    settings.mode === 'learn'
+      ? index === 0
+        ? 'Tap emoji to replay · swipe up'
+        : 'Tap to replay'
+      : settings.mode === 'choice'
+        ? 'Pick the word'
+        : 'Type the word'
+
+  const quizUi =
+    settings.mode === 'choice'
+      ? `<div class="quiz-options">
+          ${choiceWords(word, pool)
+            .map(
+              (option) =>
+                `<button class="quiz-option" type="button" data-value="${escapeHtml(option)}">${escapeHtml(option)}</button>`,
+            )
+            .join('')}
+        </div>`
+      : settings.mode === 'type'
+        ? `<form class="type-form">
+            <input class="type-input" type="text" enterkeyhint="done" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" aria-label="Type the word" />
+            <button type="submit">Check</button>
+          </form>
+          <p class="type-feedback"></p>`
+        : ''
+
+  const prompt = quiz
+    ? `<p class="native" data-native>${native}</p>
+       <p class="learn" data-learn hidden></p>`
+    : `<p class="learn" data-learn></p>
+       <p class="native" data-native>${native}</p>`
+
+  return `
+    <article class="card ${quiz ? 'card-quiz' : ''}" data-index="${index}" data-answer="${answer}" style="background:${word.tint}">
+      <button class="emoji-hit" type="button" aria-label="${quiz ? 'Word prompt' : 'Replay pronunciation'}">
+        <span class="emoji">${word.emoji}</span>
+      </button>
+      ${prompt}
+      ${quizUi}
+      <p class="hint">${hint}</p>
+    </article>
+  `
+}
+
+function choiceWords(word: Word, pool: Word[]): string[] {
+  const correct = word.forms[settings.learning]
+  const distractors = shuffled(
+    pool.filter((item) => item.id !== word.id && item.forms[settings.learning] !== correct),
+  )
+    .slice(0, 2)
+    .map((item) => item.forms[settings.learning])
+
+  return shuffled([correct, ...distractors])
+}
+
+function gradeCard(card: HTMLElement, given: string): void {
+  const index = Number(card.dataset.index)
+  const expected = card.dataset.answer ?? ''
+  const correct = normalizeAnswer(given) === normalizeAnswer(expected)
+  const word = feedWords[index]
+  if (!word) return
+
+  card.classList.add('answered', correct ? 'is-correct' : 'is-wrong')
+
+  const learn = card.querySelector<HTMLElement>('[data-learn]')
+  if (learn) {
+    learn.hidden = false
+    learn.textContent = expected
+  }
+
+  const hint = card.querySelector('.hint')
+  if (hint) hint.textContent = correct ? 'Nice · swipe up' : 'Swipe up for the next word'
+
+  card.querySelectorAll<HTMLButtonElement>('.quiz-option').forEach((option) => {
+    option.disabled = true
+    if (normalizeAnswer(option.dataset.value ?? '') === normalizeAnswer(expected)) {
+      option.classList.add('is-correct')
+    }
+    if (option.dataset.value === given && !correct) option.classList.add('is-wrong')
+  })
+
+  const input = card.querySelector<HTMLInputElement>('.type-input')
+  if (input) {
+    input.disabled = true
+    input.value = given
+  }
+  const submit = card.querySelector<HTMLButtonElement>('.type-form button')
+  if (submit) submit.disabled = true
+
+  const feedback = card.querySelector('.type-feedback')
+  if (feedback) {
+    feedback.textContent = correct ? 'Correct' : `It’s ${expected}`
+  }
+
+  speakWord(index, true)
+  refreshChrome()
+  if (correct) scheduleAdvance(index)
+}
+
+function scheduleAdvance(index: number): void {
+  window.clearTimeout(advanceTimer)
+  advanceTimer = window.setTimeout(() => {
+    if (activeIndex !== index) return
+    feed.querySelector<HTMLElement>(`[data-index="${index + 1}"]`)?.scrollIntoView({
+      behavior: 'smooth',
+    })
+  }, 1100)
 }
 
 function speakWord(index: number, force = false): void {
@@ -295,6 +472,7 @@ function speakWord(index: number, force = false): void {
 }
 
 function refreshWords(): void {
+  if (settings.mode !== 'learn') return
   feed.querySelectorAll<HTMLElement>('.card').forEach((card, index) => {
     const word = feedWords[index]
     if (!word) return
@@ -312,12 +490,19 @@ function refreshChrome(): void {
 
   const count = settings.category ? wordsInCategory(settings.category).length : 0
   const category = settings.category ? getCategory(settings.category) : null
+  const score = feed.querySelectorAll('.card.is-correct').length
   progress.textContent = category
-    ? `${category.emoji} ${Math.min(activeIndex + 1, count)} / ${count}`
+    ? settings.mode === 'learn'
+      ? `${category.emoji} ${Math.min(activeIndex + 1, count)} / ${count}`
+      : `${category.emoji} ${Math.min(activeIndex + 1, count)} / ${count} · ${score}✓`
     : '—'
 
   startBtn.disabled = !settings.category
-  startBtn.textContent = settings.category ? 'Start scrolling' : 'Choose a category'
+  startBtn.textContent = !settings.category
+    ? 'Choose a category'
+    : settings.mode === 'learn'
+      ? 'Start scrolling'
+      : 'Start quiz'
 
   document.querySelectorAll('[data-lang-role]').forEach((root) => {
     const role = (root as HTMLElement).dataset.langRole
@@ -334,19 +519,53 @@ function refreshChrome(): void {
     )
   })
 
+  document.querySelectorAll('[data-mode]').forEach((choice) => {
+    choice.setAttribute('aria-pressed', String((choice as HTMLElement).dataset.mode === settings.mode))
+  })
+
   refreshWords()
 }
 
 function closeSettings(): void {
-  const previousCategory = feedWords[0]?.category ?? null
   saveSettings()
   sheet.hidden = true
-  if (settings.category && settings.category !== previousCategory) {
+  if (settings.started && settings.category && feedKey !== currentFeedKey()) {
     renderFeed()
   } else {
     refreshChrome()
   }
-  if (settings.started && autoplay) speakWord(activeIndex, true)
+  if (settings.started && settings.mode === 'learn' && autoplay) speakWord(activeIndex, true)
+}
+
+function normalizeAnswer(value: string): string {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/ł/g, 'l')
+    .normalize('NFD')
+    .replace(/\p{M}/gu, '')
+    .replace(/[^a-z0-9]+/g, '')
+}
+
+function shuffled<T>(items: T[]): T[] {
+  const copy = [...items]
+  for (let i = copy.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1))
+    const current = copy[i]
+    const swap = copy[j]
+    if (current === undefined || swap === undefined) continue
+    copy[i] = swap
+    copy[j] = current
+  }
+  return copy
+}
+
+function escapeHtml(value: string): string {
+  return value
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
 }
 
 function qs<T extends HTMLElement>(selector: string): T {
