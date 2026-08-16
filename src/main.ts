@@ -134,6 +134,9 @@ let observer: IntersectionObserver | undefined
 let sessionCorrect = 0
 let sessionAnswered = 0
 let resultsTimer = 0
+let learnSpokenTimer = 0
+let learnSpokenGen = 0
+let learnDoneShown = false
 
 prefetchVoices()
 
@@ -158,6 +161,19 @@ app.innerHTML = `
         <p class="results-score" id="results-score"></p>
         <p class="results-sub" id="results-sub"></p>
         <button class="start" type="button" id="go-home">Home</button>
+      </div>
+    </section>
+
+    <section class="results" id="learn-done" hidden>
+      <div class="results-panel learn-done-panel">
+        <p class="results-kicker" id="learn-done-kicker">Category complete</p>
+        <p class="learn-done-title">Nice work</p>
+        <p class="results-sub" id="learn-done-sub">Quiz these words, or go home to pick a new category.</p>
+        <div class="learn-done-actions">
+          <button class="start" type="button" id="learn-done-choice">Multiple choice</button>
+          <button class="start start-alt" type="button" id="learn-done-type">Typing</button>
+          <button class="ghost-link" type="button" id="learn-done-home">Home</button>
+        </div>
       </div>
     </section>
 
@@ -298,6 +314,7 @@ const sheet = qs<HTMLElement>('#sheet')
 const knownSheet = qs<HTMLElement>('#known')
 const soundSheet = qs<HTMLElement>('#sounds')
 const results = qs<HTMLElement>('#results')
+const learnDone = qs<HTMLElement>('#learn-done')
 const langLabel = qs<HTMLElement>('#lang-label')
 const progress = qs<HTMLElement>('#progress')
 const soundBtn = qs<HTMLButtonElement>('#open-sounds')
@@ -429,6 +446,7 @@ qs('#start').addEventListener('click', () => {
 })
 
 qs('#start-known').addEventListener('click', () => {
+  settings.mode = 'learn'
   void beginSession(true)
 })
 
@@ -436,6 +454,13 @@ qs('#open-known').addEventListener('click', openKnown)
 qs('#settings-known').addEventListener('click', openKnown)
 qs('#close-known').addEventListener('click', closeKnown)
 qs('#go-home').addEventListener('click', goHome)
+qs('#learn-done-home').addEventListener('click', goHome)
+qs('#learn-done-choice').addEventListener('click', () => {
+  void continueAsQuiz('choice')
+})
+qs('#learn-done-type').addEventListener('click', () => {
+  void continueAsQuiz('type')
+})
 
 qs('#open-settings').addEventListener('click', () => {
   sheet.hidden = false
@@ -510,6 +535,7 @@ document.addEventListener('visibilitychange', () => {
 window.addEventListener('keydown', (event) => {
   if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') return
   if (event.target instanceof HTMLInputElement) return
+  if (!results.hidden || !learnDone.hidden) return
   event.preventDefault()
   const next = event.key === 'ArrowDown' ? activeIndex + 1 : activeIndex - 1
   const card = feed.querySelector<HTMLElement>(`[data-index="${next}"]`)
@@ -517,7 +543,7 @@ window.addEventListener('keydown', (event) => {
 })
 
 function effectiveMode(): ModeId {
-  return settings.reviewingKnown ? 'learn' : settings.mode
+  return settings.mode
 }
 
 async function beginSession(reviewing: boolean): Promise<void> {
@@ -530,6 +556,7 @@ async function beginSession(reviewing: boolean): Promise<void> {
   sessionCorrect = 0
   sessionAnswered = 0
   hideResults()
+  hideLearnDone()
   renderFeed()
   gate.hidden = true
   knownSheet.hidden = true
@@ -564,8 +591,11 @@ function goHome(): void {
   window.clearTimeout(resultsTimer)
   window.clearTimeout(speakTimer)
   window.clearTimeout(revealTimer)
+  window.clearTimeout(learnSpokenTimer)
+  learnSpokenGen += 1
   learnGeneration += 1
   hideResults()
+  hideLearnDone()
   observer?.disconnect()
   feedWords = []
   feed.innerHTML = ''
@@ -581,6 +611,40 @@ function goHome(): void {
 
 function hideResults(): void {
   results.hidden = true
+}
+
+function hideLearnDone(): void {
+  learnDone.hidden = true
+}
+
+function showLearnDone(): void {
+  if (learnDoneShown || !settings.started || effectiveMode() !== 'learn') return
+  const category = settings.category ? getCategory(settings.category) : null
+  qs('#learn-done-kicker').textContent = category ? `${category.short} complete` : 'Category complete'
+  qs('#learn-done-sub').textContent = category
+    ? `${category.short} is done. Quiz these words, or go home to pick a new category.`
+    : 'Quiz these words, or go home to pick a new category.'
+  learnDoneShown = true
+  learnDone.hidden = false
+  playResult()
+}
+
+function scheduleLearnDone(index: number, generation: number): void {
+  if (index < feedWords.length - 1) return
+  window.setTimeout(() => {
+    if (generation !== learnSpokenGen) return
+    if (activeIndex !== index || effectiveMode() !== 'learn') return
+    showLearnDone()
+  }, 320)
+}
+
+async function continueAsQuiz(mode: ModeId): Promise<void> {
+  hideLearnDone()
+  settings.mode = mode
+  const leftover = settings.category
+    ? wordsInCategory(settings.category, settings.knownIds, false)
+    : []
+  await beginSession(leftover.length === 0)
 }
 
 function showResults(): void {
@@ -617,7 +681,11 @@ function renderFeed(startId?: string): void {
   window.clearTimeout(advanceTimer)
   window.clearTimeout(speakTimer)
   window.clearTimeout(revealTimer)
+  window.clearTimeout(learnSpokenTimer)
+  learnSpokenGen += 1
   learnGeneration += 1
+  learnDoneShown = false
+  hideLearnDone()
   const pool = activePool()
   feedWords = effectiveMode() === 'learn' ? pool : shuffled(pool)
   feedKey = currentFeedKey()
@@ -1024,6 +1092,8 @@ function startLearnHook(index: number): void {
   const generation = learnGeneration
   window.clearTimeout(speakTimer)
   window.clearTimeout(revealTimer)
+  window.clearTimeout(learnSpokenTimer)
+  learnSpokenGen += 1
   stopSpeech()
   resetRevealRings()
 
@@ -1123,12 +1193,27 @@ function speakWord(index: number, force = false): void {
     feed.querySelector(`[data-index="${index}"]`)?.classList.remove('speaking')
   }, 900)
 
-  if (!force && !settings.sounds.voice) return
+  const offerGen = ++learnSpokenGen
+  window.clearTimeout(learnSpokenTimer)
+  const afterSpoken = (): void => {
+    if (offerGen !== learnSpokenGen) return
+    window.clearTimeout(learnSpokenTimer)
+    scheduleLearnDone(index, offerGen)
+  }
+
+  if (!force && !settings.sounds.voice) {
+    const wait = index >= feedWords.length - 1 ? 700 : 0
+    if (wait) learnSpokenTimer = window.setTimeout(afterSpoken, wait)
+    return
+  }
 
   window.clearTimeout(speakTimer)
+  const learning = getLanguage(settings.learning)
+  const text = word.forms[settings.learning]
+  const fallbackMs = Math.min(6500, Math.max(2500, 1200 + text.length * 140))
   speakTimer = window.setTimeout(() => {
-    const learning = getLanguage(settings.learning)
-    speak(word.forms[settings.learning], learning.bcp47, learning.voiceLangs)
+    speak(text, learning.bcp47, learning.voiceLangs, afterSpoken)
+    learnSpokenTimer = window.setTimeout(afterSpoken, fallbackMs)
   }, force ? 0 : 140)
 }
 
