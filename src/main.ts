@@ -94,6 +94,7 @@ function readSoundPrefs(raw: unknown): SoundPrefs {
   }
   sounds.voice = parsed.voice !== false
   sounds.reveal = parsed.reveal !== false
+  sounds.ask = parsed.ask !== false
   for (const action of SOUND_ACTIONS) {
     sounds.enabled[action.id] = parsed.enabled?.[action.id] !== false
     const choice = parsed.choice?.[action.id]
@@ -243,6 +244,15 @@ app.innerHTML = `
               <p class="field-note">Ask first, then fade in the word you’re learning</p>
             </div>
             <button class="choice" type="button" id="toggle-reveal">On</button>
+          </div>
+        </div>
+        <div class="field">
+          <div class="sound-head">
+            <div>
+              <label>Ask phrase</label>
+              <p class="field-note">Says “How do you say” before the word you know</p>
+            </div>
+            <button class="choice" type="button" id="toggle-ask">On</button>
           </div>
         </div>
         <div id="sound-fields"></div>
@@ -452,6 +462,14 @@ qs('#toggle-reveal').addEventListener('click', () => {
   saveSettings()
   refreshSoundSheet()
   if (settings.started && effectiveMode() === 'learn') {
+    renderFeed(feedWords[activeIndex]?.id)
+  }
+})
+qs('#toggle-ask').addEventListener('click', () => {
+  settings.sounds.ask = !settings.sounds.ask
+  saveSettings()
+  refreshSoundSheet()
+  if (settings.started && effectiveMode() === 'learn' && settings.sounds.reveal) {
     renderFeed(feedWords[activeIndex]?.id)
   }
 })
@@ -751,7 +769,7 @@ function cardMarkup(word: Word, index: number, pool: Word[]): string {
        <p class="learn" data-learn hidden></p>`
     : settings.sounds.reveal
       ? `<div class="hook">
-           <p class="hook-ask">${escapeHtml(hookFor(index, settings.native).label)}</p>
+           <p class="hook-ask"${settings.sounds.ask ? '' : ' hidden'}>${escapeHtml(hookFor(index, settings.native).label)}</p>
            <p class="hook-native" data-native>${escapeHtml(displayPromptWord(word.forms[settings.native]))}</p>
          </div>
          <button class="emoji-hit" type="button" aria-label="Replay pronunciation">
@@ -972,12 +990,16 @@ function startLearnHook(index: number): void {
   const card = feed.querySelector(`[data-index="${index}"]`)
   card?.classList.add('speaking')
   const hook = hookFor(index, settings.native)
-  const ask = card?.querySelector('.hook-ask')
+  const ask = card?.querySelector<HTMLElement>('.hook-ask')
   const nativeWord = word.forms[settings.native]
-  if (ask) ask.textContent = hook.label
+  if (ask) {
+    ask.hidden = !settings.sounds.ask
+    ask.textContent = hook.label
+  }
   const nativeEl = card?.querySelector('[data-native]')
   if (nativeEl) nativeEl.textContent = displayPromptWord(nativeWord)
 
+  const afterAskMs = 1420
   const revealSoon = (delay: number): void => {
     if (generation !== learnGeneration || activeIndex !== index) return
     window.clearTimeout(revealTimer)
@@ -988,17 +1010,17 @@ function startLearnHook(index: number): void {
   }
 
   if (!settings.sounds.voice) {
-    revealSoon(1300)
+    revealSoon(2300)
     return
   }
 
   const native = getLanguage(settings.native)
-  const prompt = hook.speak(nativeWord)
+  const prompt = settings.sounds.ask ? hook.speak(nativeWord) : displayPromptWord(nativeWord)
   speakTimer = window.setTimeout(() => {
     if (generation !== learnGeneration || activeIndex !== index) return
-    speak(prompt, native.bcp47, native.voiceLangs, () => revealSoon(420))
+    speak(prompt, native.bcp47, native.voiceLangs, () => revealSoon(afterAskMs))
   }, 40)
-  revealSoon(Math.min(4200, Math.max(2200, 900 + prompt.length * 90)))
+  revealSoon(Math.min(5200, Math.max(2800, 1900 + prompt.length * 90)))
 }
 
 function revealLearnCard(index: number, force = false): void {
@@ -1046,14 +1068,17 @@ function refreshWords(): void {
     if (!word) return
     const learn = card.querySelector('[data-learn]')
     const native = card.querySelector('[data-native]')
-    const ask = card.querySelector('.hook-ask')
+    const ask = card.querySelector<HTMLElement>('.hook-ask')
     if (learn) learn.textContent = word.forms[settings.learning]
     if (native) {
       native.textContent = settings.sounds.reveal
         ? displayPromptWord(word.forms[settings.native])
         : word.forms[settings.native]
     }
-    if (ask) ask.textContent = hookFor(index, settings.native).label
+    if (ask) {
+      ask.hidden = !settings.sounds.ask
+      ask.textContent = hookFor(index, settings.native).label
+    }
   })
 }
 
@@ -1146,6 +1171,10 @@ function refreshSoundSheet(): void {
   const revealBtn = qs<HTMLButtonElement>('#toggle-reveal')
   revealBtn.textContent = settings.sounds.reveal ? 'On' : 'Off'
   revealBtn.setAttribute('aria-pressed', String(settings.sounds.reveal))
+  const askBtn = qs<HTMLButtonElement>('#toggle-ask')
+  askBtn.textContent = settings.sounds.ask ? 'On' : 'Off'
+  askBtn.setAttribute('aria-pressed', String(settings.sounds.ask))
+  askBtn.disabled = !settings.sounds.reveal
 
   SOUND_ACTIONS.forEach((action) => {
     const on = settings.sounds.enabled[action.id]
