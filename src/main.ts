@@ -188,6 +188,25 @@ app.innerHTML = `
 `
 
 const feed = qs<HTMLElement>('#feed')
+let swipeSoundIndex = 0
+feed.addEventListener(
+  'scroll',
+  () => {
+    const height = feed.clientHeight
+    if (!height) return
+    const progress = Math.max(0, feed.scrollTop / height)
+    const risingIndex = Math.floor(progress + 0.82)
+    if (risingIndex > swipeSoundIndex) {
+      playScroll()
+      swipeSoundIndex = risingIndex
+      return
+    }
+    if (progress <= swipeSoundIndex - 0.45) {
+      swipeSoundIndex = Math.round(progress)
+    }
+  },
+  { passive: true },
+)
 const gate = qs<HTMLElement>('#gate')
 const sheet = qs<HTMLElement>('#sheet')
 const knownSheet = qs<HTMLElement>('#known')
@@ -453,6 +472,7 @@ function renderFeed(startId?: string): void {
     startId ? feedWords.findIndex((item) => item.id === startId) : 0,
   )
   activeIndex = startIndex === -1 ? 0 : startIndex
+  swipeSoundIndex = activeIndex
 
   if (!feedWords.length) {
     const category = getCategory(settings.category)
@@ -538,9 +558,7 @@ function bindFeed(): void {
 
       if (index === activeIndex) return
 
-      const goingForward = index > activeIndex
       activeIndex = index
-      if (goingForward) playScroll()
       refreshChrome()
       if (settings.started && effectiveMode() === 'learn' && autoplay) speakWord(index)
     },
@@ -638,11 +656,12 @@ function gradeCard(card: HTMLElement, given: string): void {
   const word = feedWords[index]
   if (!word) return
 
+  if (correct) playCorrect()
+  else playWrong()
+
   card.classList.add('answered', correct ? 'is-correct' : 'is-wrong')
   sessionAnswered += 1
   if (correct) sessionCorrect += 1
-  if (correct) playCorrect()
-  else playWrong()
 
   const learn = card.querySelector<HTMLElement>('[data-learn]')
   if (learn) {
