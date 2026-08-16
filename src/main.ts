@@ -299,11 +299,11 @@ document.querySelectorAll('[data-mode-choices]').forEach((root) => {
 })
 
 qs('#start').addEventListener('click', () => {
-  beginSession(false)
+  void beginSession(false)
 })
 
 qs('#start-known').addEventListener('click', () => {
-  beginSession(true)
+  void beginSession(true)
 })
 
 qs('#open-known').addEventListener('click', openKnown)
@@ -354,11 +354,11 @@ function effectiveMode(): ModeId {
   return settings.reviewingKnown ? 'learn' : settings.mode
 }
 
-function beginSession(reviewing: boolean): void {
+async function beginSession(reviewing: boolean): Promise<void> {
   settings.reviewingKnown = reviewing
   if (!settings.category || activePool().length === 0) return
   unlockSpeech()
-  unlockSfx()
+  await unlockSfx()
   settings.started = true
   saveSettings()
   sessionCorrect = 0
@@ -641,7 +641,6 @@ function gradeCard(card: HTMLElement, given: string): void {
   card.classList.add('answered', correct ? 'is-correct' : 'is-wrong')
   sessionAnswered += 1
   if (correct) sessionCorrect += 1
-  unlockSfx()
   if (correct) playCorrect()
   else playWrong()
 
