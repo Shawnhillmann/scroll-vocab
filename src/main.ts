@@ -498,9 +498,6 @@ window.addEventListener('keydown', (event) => {
   card?.scrollIntoView({ behavior: 'smooth' })
 })
 
-if (settings.started && settings.category) renderFeed()
-refreshChrome()
-
 function effectiveMode(): ModeId {
   return settings.reviewingKnown ? 'learn' : settings.mode
 }
@@ -1215,3 +1212,7 @@ function qs<T extends HTMLElement>(selector: string): T {
   if (!el) throw new Error(`Missing ${selector}`)
   return el
 }
+
+if (settings.started && settings.category) renderFeed()
+refreshChrome()
+

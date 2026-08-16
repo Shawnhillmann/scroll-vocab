@@ -206,7 +206,7 @@ button {
     transform 720ms ease;
 }
 
-.learn.is-blurred {
+.card-learn.is-active .learn.is-blurred {
   filter: blur(24px);
   opacity: 0.38;
   transform: scale(1.05);
