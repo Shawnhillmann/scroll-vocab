@@ -1,3 +1,5 @@
+import { unlockSfx } from './sfx.ts'
+
 let unlocked = false
 const heldUtterances: SpeechSynthesisUtterance[] = []
 
@@ -50,6 +52,8 @@ export function speak(text: string, bcp47: string, voiceLangs: string[]): void {
 
   heldUtterances.push(utterance)
   if (heldUtterances.length > 3) heldUtterances.shift()
+  utterance.addEventListener('end', () => unlockSfx())
+  utterance.addEventListener('error', () => unlockSfx())
   speechSynthesis.speak(utterance)
 }
 

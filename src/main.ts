@@ -326,10 +326,17 @@ muteBtn.addEventListener('click', () => {
   if (!autoplay) stopSpeech()
 })
 
-feed.addEventListener('pointerdown', () => {
+function armAudio(): void {
   unlockSpeech()
   unlockSfx()
-}, { once: true })
+}
+
+const stage = qs<HTMLElement>('.stage')
+stage.addEventListener('pointerdown', armAudio)
+stage.addEventListener('touchstart', armAudio, { passive: true })
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') unlockSfx()
+})
 
 window.addEventListener('keydown', (event) => {
   if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') return
