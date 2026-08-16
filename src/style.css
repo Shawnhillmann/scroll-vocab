@@ -625,10 +625,6 @@ button {
   animation: rise-in 0.35s ease;
 }
 
-.card.is-wrong {
-  animation: shake 0.28s ease;
-}
-
 .card.is-correct .emoji {
   animation: yes-pop 0.32s ease;
 }
@@ -666,17 +662,10 @@ button {
   100% { transform: scale(1); }
 }
 
-@keyframes shake {
-  0%, 100% { transform: translateX(0); }
-  30% { transform: translateX(-3px); }
-  60% { transform: translateX(2px); }
-}
-
 @media (prefers-reduced-motion: reduce) {
   .card.is-active .emoji,
   .card.is-active .learn,
   .card.is-active .native,
-  .card.is-wrong,
   .card.is-correct .emoji,
   .results,
   .results-panel {

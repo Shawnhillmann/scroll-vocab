@@ -633,6 +633,7 @@ function gradeCard(card: HTMLElement, given: string): void {
   card.classList.add('answered', correct ? 'is-correct' : 'is-wrong')
   sessionAnswered += 1
   if (correct) sessionCorrect += 1
+  unlockSfx()
   if (correct) playCorrect()
   else playWrong()
 
@@ -666,12 +667,12 @@ function gradeCard(card: HTMLElement, given: string): void {
     feedback.textContent = correct ? 'Correct' : `It’s ${expected}`
   }
 
-  speakWord(index, true)
+  window.setTimeout(() => speakWord(index, true), correct ? 320 : 180)
   refreshChrome()
   const last = index >= feedWords.length - 1
   if (last) {
     window.clearTimeout(resultsTimer)
-    resultsTimer = window.setTimeout(showResults, 1200)
+    resultsTimer = window.setTimeout(showResults, correct ? 1500 : 1300)
     return
   }
   if (correct) scheduleAdvance(index)
