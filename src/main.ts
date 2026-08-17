@@ -199,7 +199,7 @@ app.innerHTML = `
         </div>
       </div>
       <button class="ghost-link" type="button" id="open-known">Known words</button>
-      <button class="start" type="button" id="start">Start scrolling</button>
+      <button class="start" type="button" id="start" disabled>Choose a category</button>
     </section>
 
     <section class="sheet" id="known" hidden>
@@ -550,7 +550,7 @@ async function beginSession(reviewing: boolean): Promise<void> {
   settings.reviewingKnown = reviewing
   if (!settings.category || activePool().length === 0) return
   unlockSpeech()
-  await unlockSfx()
+  void unlockSfx()
   settings.started = true
   saveSettings()
   sessionCorrect = 0

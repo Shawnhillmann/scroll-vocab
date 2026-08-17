@@ -374,6 +374,8 @@ button {
 }
 
 .start {
+  position: relative;
+  z-index: 2;
   flex-shrink: 0;
   width: 100%;
   min-height: 52px;

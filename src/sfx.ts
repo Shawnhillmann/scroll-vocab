@@ -99,6 +99,10 @@ export function applySoundPrefs(next: SoundPrefs): void {
   prefs = next
 }
 
+function waitUpTo(ms: number): Promise<void> {
+  return new Promise((resolve) => window.setTimeout(resolve, ms))
+}
+
 export function unlockSfx(): Promise<void> {
   if (audioUnlocked) {
     void ctx?.resume()
@@ -111,7 +115,7 @@ export function unlockSfx(): Promise<void> {
   unlocking = (async () => {
     try {
       if (audio) {
-        await audio.resume()
+        await Promise.race([audio.resume(), waitUpTo(400)])
         tickUnlock(audio)
         startKeepAlive(audio)
         for (const [id, samples] of Object.entries(catalog)) {
@@ -120,10 +124,15 @@ export function unlockSfx(): Promise<void> {
       }
 
       const selected = SOUND_ACTIONS.map((action) => clipFor(prefs.choice[action.id]))
-      await Promise.all([...selected, silenceClip].map(primeClip))
-      silenceClip.loop = true
-      silenceClip.volume = 0.001
-      await silenceClip.play()
+      await Promise.race([
+        (async () => {
+          await Promise.all([...selected, silenceClip].map(primeClip))
+          silenceClip.loop = true
+          silenceClip.volume = 0.001
+          await silenceClip.play()
+        })(),
+        waitUpTo(800),
+      ])
       audioUnlocked = true
     } catch (err) {
       console.warn('Audio unlock failed', err)
@@ -201,12 +210,18 @@ function trigger(clip: HTMLAudioElement): void {
 
 function primeClip(clip: HTMLAudioElement): Promise<void> {
   clip.volume = 0
-  return clip.play().then(() => {
-    if (clip === silenceClip) return
-    clip.pause()
-    clip.currentTime = 0
-    clip.volume = 1
-  })
+  const attempt = clip.play()
+  if (!attempt) return Promise.resolve()
+  return attempt
+    .then(() => {
+      if (clip === silenceClip) return
+      clip.pause()
+      clip.currentTime = 0
+      clip.volume = 1
+    })
+    .catch(() => {
+      /* iPhone autoplay can reject; the session should still start */
+    })
 }
 
 function clipFor(id: string): HTMLAudioElement {

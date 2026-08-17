@@ -139,8 +139,17 @@ function tintFor(category: CategoryId): string {
 
 function singleEmoji(value: string): string {
   const first = value.split('\u200D')[0] ?? value
-  const grapheme = [...new Intl.Segmenter('en', { granularity: 'grapheme' }).segment(first)][0]
-  return grapheme?.segment ?? first
+  try {
+    if (typeof Intl !== 'undefined' && 'Segmenter' in Intl) {
+      const grapheme = [
+        ...new Intl.Segmenter('en', { granularity: 'grapheme' }).segment(first),
+      ][0]
+      return grapheme?.segment ?? first
+    }
+  } catch {
+    /* older browsers without grapheme splitting */
+  }
+  return [...first][0] ?? first
 }
 
 function word(
