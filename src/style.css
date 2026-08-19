@@ -262,6 +262,8 @@ button {
   filter: blur(0);
   opacity: 1;
   transform: scale(1);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .examples {

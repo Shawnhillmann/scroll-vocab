@@ -673,6 +673,16 @@ function bindFeed(): void {
     })
   })
 
+  feed.querySelectorAll<HTMLElement>('.card-learn [data-learn]').forEach((learn, index) => {
+    learn.addEventListener('click', (event) => {
+      event.stopPropagation()
+      const card = learn.closest<HTMLElement>('.card-learn')
+      if (!card?.classList.contains('is-revealed')) return
+      if (exampleWaiting || card.classList.contains('speaking')) return
+      replaySpelling(index)
+    })
+  })
+
   observer = new IntersectionObserver(
     (entries) => {
       const visible = entries
@@ -1063,7 +1073,11 @@ function revealLearnCard(index: number, force = false): void {
     learn.removeAttribute('aria-hidden')
   }
   const hint = card.querySelector('.hint')
-  if (hint) hint.textContent = word.examples.length ? 'Listen · a sentence' : 'Tap emoji to replay · swipe up'
+  if (hint) {
+    hint.textContent = word.examples.length
+      ? 'Listen · tap word to spell'
+      : 'Tap emoji to replay · tap word to spell'
+  }
   speakWord(index, force, 'examples')
 }
 
@@ -1085,6 +1099,31 @@ function replayExample(item: HTMLElement, text: string): void {
   speak(text, polish.bcp47, polish.voiceLangs)
 }
 
+function spellingText(text: string): string {
+  const compact = text
+    .normalize('NFC')
+    .toUpperCase()
+    .replace(/\s+/g, '')
+    .replace(/[.,!?;:'"()[\]{}\-_/\\]/g, '')
+  return [...compact].join(' ')
+}
+
+function replaySpelling(index: number): void {
+  const word = feedWords[index]
+  if (!word || !settings.sounds.voice) return
+  const spelled = spellingText(word.forms[settings.learning])
+  if (!spelled) return
+
+  unlockSpeech()
+  feed.querySelectorAll('.card').forEach((card) => card.classList.remove('speaking'))
+  const card = feed.querySelector<HTMLElement>(`[data-index="${index}"]`)
+  card?.classList.add('speaking')
+  window.setTimeout(() => card?.classList.remove('speaking'), 900)
+
+  const learning = getLanguage(settings.learning)
+  speak(spelled, learning.bcp47, learning.voiceLangs)
+}
+
 function skipToNextExample(index: number): void {
   learnSpokenGen += 1
   stopSpeech()
@@ -1103,7 +1142,7 @@ function queueExample(index: number, step: number): void {
     examplesDone = true
     exampleWaiting = false
     const hint = card?.querySelector('.hint')
-    if (hint) hint.textContent = 'Tap a sentence to hear it · swipe up'
+    if (hint) hint.textContent = 'Tap sentence or word · swipe up'
     scheduleLearnDone(index, learnSpokenGen)
     return
   }
