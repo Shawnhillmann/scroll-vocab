@@ -35,6 +35,7 @@ export function speak(
   bcp47: string,
   voiceLangs: string[],
   onEnd?: () => void,
+  rateMultiplier = 1,
 ): void {
   if (!unlocked || !text) {
     onEnd?.()
@@ -47,7 +48,8 @@ export function speak(
   }
   const utterance = new SpeechSynthesisUtterance(text)
   utterance.lang = bcp47
-  utterance.rate = 0.94
+  const nextRate = 0.94 * Math.max(0.4, Math.min(1.4, rateMultiplier))
+  utterance.rate = nextRate
   utterance.pitch = 1
   utterance.volume = 1
 

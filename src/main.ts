@@ -128,6 +128,8 @@ let nextExample = 0
 let examplesDone = false
 let exampleWaiting = false
 let skipCurrentRing: (() => void) | null = null
+let spellingReplayWordId = ''
+let spellingReplayStep = 0
 
 prefetchVoices()
 
@@ -1114,6 +1116,14 @@ function replaySpelling(index: number): void {
   const spelled = spellingText(word.forms[settings.learning])
   if (!spelled) return
 
+  if (spellingReplayWordId !== word.id) {
+    spellingReplayWordId = word.id
+    spellingReplayStep = 0
+  }
+
+  const rateMultiplier = spellingReplayStep === 0 ? 1 : 0.7
+  spellingReplayStep = spellingReplayStep >= 2 ? 0 : spellingReplayStep + 1
+
   unlockSpeech()
   feed.querySelectorAll('.card').forEach((card) => card.classList.remove('speaking'))
   const card = feed.querySelector<HTMLElement>(`[data-index="${index}"]`)
@@ -1121,7 +1131,7 @@ function replaySpelling(index: number): void {
   window.setTimeout(() => card?.classList.remove('speaking'), 900)
 
   const learning = getLanguage(settings.learning)
-  speak(spelled, learning.bcp47, learning.voiceLangs)
+  speak(spelled, learning.bcp47, learning.voiceLangs, undefined, rateMultiplier)
 }
 
 function skipToNextExample(index: number): void {
