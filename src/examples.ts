@@ -1606,6 +1606,506 @@ const EXAMPLES: Record<string, Example[]> = {
     x('Ten wieczór jest wolny.', 'This evening is free.'),
     x('Czuję się wolny w parku.', 'I feel free in the park.'),
   ],
+  'core-nie': [
+    x('Nie chcę kawy.', 'I do not want coffee.'),
+    x('To nie jest trudne.', 'This is not hard.'),
+    x('Nie, dziękuję.', 'No, thank you.'),
+  ],
+  'core-to': [
+    x('To jest dobry pomysł.', 'This is a good idea.'),
+    x('Co to jest?', 'What is this?'),
+    x('To mój dom.', 'This is my house.'),
+  ],
+  'core-sie': [
+    x('Uczę się polskiego.', 'I am learning Polish.'),
+    x('Proszę, usiądź tutaj.', 'Please sit down here.'),
+    x('Boję się burzy.', 'I am afraid of the storm.'),
+  ],
+  'core-i': [
+    x('Chleb i masło.', 'Bread and butter.'),
+    x('Ja i ty idziemy.', 'You and I are going.'),
+    x('Herbata i cytryna.', 'Tea and lemon.'),
+  ],
+  'core-w': [
+    x('Jestem w domu.', 'I am at home.'),
+    x('Książka jest w torbie.', 'The book is in the bag.'),
+    x('Mieszkam w Warszawie.', 'I live in Warsaw.'),
+  ],
+  'core-na': [
+    x('Kładę klucz na stole.', 'I put the key on the table.'),
+    x('Spotkamy się na dworcu.', 'We will meet at the station.'),
+    x('Idę na spacer.', 'I am going for a walk.'),
+  ],
+  'core-z': [
+    x('Idę z przyjacielem.', 'I am going with a friend.'),
+    x('Herbata z cytryną.', 'Tea with lemon.'),
+    x('Wracam z pracy.', 'I am coming back from work.'),
+  ],
+  'core-do': [
+    x('Idę do sklepu.', 'I am going to the shop.'),
+    x('Wlewam wodę do szklanki.', 'I pour water into a glass.'),
+    x('Jedziemy do miasta.', 'We are going to the city.'),
+  ],
+  'core-ze': [
+    x('Wiem, że to prawda.', 'I know that this is true.'),
+    x('Mówi, że pada deszcz.', 'He says that it is raining.'),
+    x('Cieszę się, że jesteś.', 'I am glad that you are here.'),
+  ],
+  'core-co': [
+    x('Co to jest?', 'What is this?'),
+    x('Co chcesz jeść?', 'What do you want to eat?'),
+    x('Nie wiem, co robić.', 'I do not know what to do.'),
+  ],
+  'core-tak': [
+    x('Tak, proszę.', 'Yes, please.'),
+    x('Tak, to dobry pomysł.', 'Yes, that is a good idea.'),
+    x('Zrób to tak.', 'Do it like this.'),
+  ],
+  'core-jak': [
+    x('Jak się masz?', 'How are you?'),
+    x('Jak to powiedzieć?', 'How do you say this?'),
+    x('Jest zimno jak lód.', 'It is cold like ice.'),
+  ],
+  'core-ale': [
+    x('Chcę iść, ale pada.', 'I want to go, but it is raining.'),
+    x('Dobry, ale drogi.', 'Good, but expensive.'),
+    x('Szybko, ale ostrożnie.', 'Fast, but carefully.'),
+  ],
+  'core-o': [
+    x('Mówimy o pogodzie.', 'We are talking about the weather.'),
+    x('Myślę o tobie.', 'I am thinking about you.'),
+    x('Książka jest o domu.', 'The book is about a house.'),
+  ],
+  'core-a': [
+    x('Ja piję kawę, a ty herbatę.', 'I drink coffee, and you drink tea.'),
+    x('Chcę iść, a pada.', 'I want to go, but it is raining.'),
+    x('On czyta, a ona pisze.', 'He reads, and she writes.'),
+  ],
+  'core-za': [
+    x('Dziękuję za pomoc.', 'Thank you for the help.'),
+    x('Stoję za drzwiami.', 'I am standing behind the door.'),
+    x('To za drogie.', 'This is too expensive.'),
+  ],
+  'core-po': [
+    x('Dzwonię po obiedzie.', 'I will call after lunch.'),
+    x('Idziemy po drodze.', 'We walk along the road.'),
+    x('Herbata po obiedzie.', 'Tea after lunch.'),
+  ],
+  'core-od': [
+    x('Idę od dworca.', 'I am coming from the station.'),
+    x('Pracuję od rana.', 'I have been working since morning.'),
+    x('To prezent od mamy.', 'This is a gift from mom.'),
+  ],
+  'core-dla': [
+    x('To kwiat dla ciebie.', 'This flower is for you.'),
+    x('Herbata dla gości.', 'Tea for the guests.'),
+    x('Robię to dla rodziny.', 'I am doing this for the family.'),
+  ],
+  'core-przez': [
+    x('Idę przez most.', 'I walk through the bridge.'),
+    x('Dzwonię przez telefon.', 'I call through the phone.'),
+    x('Spóźniłem się przez deszcz.', 'I was late because of the rain.'),
+  ],
+  'core-czy': [
+    x('Czy lubisz kawę?', 'Do you like coffee?'),
+    x('Nie wiem, czy przyjdzie.', 'I do not know whether he will come.'),
+    x('Czy to twój klucz?', 'Is this your key?'),
+  ],
+  'core-tylko': [
+    x('Chcę tylko wodę.', 'I only want water.'),
+    x('To tylko mały problem.', 'This is just a small problem.'),
+    x('Został tylko jeden bilet.', 'There is only one ticket left.'),
+  ],
+  'core-bardzo': [
+    x('Jestem bardzo zmęczony.', 'I am very tired.'),
+    x('To bardzo dobry film.', 'This is a very good film.'),
+    x('Bardzo dziękuję.', 'Thank you very much.'),
+  ],
+  'core-juz': [
+    x('Już jestem w domu.', 'I am already at home.'),
+    x('Pociąg już odjechał.', 'The train has already left.'),
+    x('Już rozumiem.', 'I already understand.'),
+  ],
+  'core-jeszcze': [
+    x('Jeszcze pada deszcz.', 'It is still raining.'),
+    x('Nie skończyłem jeszcze.', 'I have not finished yet.'),
+    x('Chcę jeszcze herbaty.', 'I want more tea.'),
+  ],
+  'core-teraz': [
+    x('Teraz idę do pracy.', 'I am going to work now.'),
+    x('Zrób to teraz.', 'Do it now.'),
+    x('Teraz jest ciepło.', 'It is warm now.'),
+  ],
+  'core-tu': [
+    x('Jestem tu.', 'I am here.'),
+    x('Połóż książkę tu.', 'Put the book here.'),
+    x('Tu jest moja szkoła.', 'My school is here.'),
+  ],
+  'core-tam': [
+    x('On stoi tam.', 'He is standing there.'),
+    x('Idziemy tam wieczorem.', 'We are going there in the evening.'),
+    x('Tam pada deszcz.', 'It is raining there.'),
+  ],
+  'core-moze': [
+    x('Może jutro.', 'Maybe tomorrow.'),
+    x('Może pójść z nami.', 'He can go with us.'),
+    x('Może to dobry pomysł.', 'Maybe this is a good idea.'),
+  ],
+  'core-bo': [
+    x('Zostaję, bo pada.', 'I stay because it is raining.'),
+    x('Jem, bo jestem głodny.', 'I eat because I am hungry.'),
+    x('Dzwonię, bo potrzebuję pomocy.', 'I call because I need help.'),
+  ],
+  'core-wiec': [
+    x('Pada, więc biorę parasol.', 'It is raining, so I take an umbrella.'),
+    x('Skończyłem, więc idę spać.', 'I finished, so I go to sleep.'),
+    x('Lubisz kawę, więc piję kawę.', 'You like coffee, so I drink coffee.'),
+  ],
+  'core-kiedy': [
+    x('Kiedy wracasz?', 'When are you coming back?'),
+    x('Dzwonię, kiedy mam czas.', 'I call when I have time.'),
+    x('Kiedy pada, zostaję w domu.', 'When it rains, I stay home.'),
+  ],
+  'core-gdzie': [
+    x('Gdzie jest klucz?', 'Where is the key?'),
+    x('Gdzie mieszkasz?', 'Where do you live?'),
+    x('Nie wiem, gdzie iść.', 'I do not know where to go.'),
+  ],
+  'core-dlaczego': [
+    x('Dlaczego pada?', 'Why is it raining?'),
+    x('Dlaczego jesteś smutny?', 'Why are you sad?'),
+    x('Nie wiem, dlaczego.', 'I do not know why.'),
+  ],
+  'core-kto': [
+    x('Kto to jest?', 'Who is this?'),
+    x('Kto dzwoni?', 'Who is calling?'),
+    x('Nie wiem, kto przyszedł.', 'I do not know who came.'),
+  ],
+  'core-ktory': [
+    x('Który autobus jedzie do miasta?', 'Which bus goes to the city?'),
+    x('To człowiek, który pomaga.', 'This is the person who helps.'),
+    x('Który chleb chcesz?', 'Which bread do you want?'),
+  ],
+  'core-cos': [
+    x('Chcę coś jeść.', 'I want to eat something.'),
+    x('Słyszę coś na zewnątrz.', 'I hear something outside.'),
+    x('Powiedz mi coś.', 'Tell me something.'),
+  ],
+  'core-nic': [
+    x('Nic nie wiem.', 'I know nothing.'),
+    x('Tu nic nie ma.', 'There is nothing here.'),
+    x('Nic się nie stało.', 'Nothing happened.'),
+  ],
+  'core-ktos': [
+    x('Ktoś dzwoni do drzwi.', 'Someone is ringing the doorbell.'),
+    x('Ktoś zostawił klucz.', 'Someone left a key.'),
+    x('Widzę kogoś w parku.', 'I see someone in the park.'),
+  ],
+  'core-wszystko': [
+    x('Rozumiem wszystko.', 'I understand everything.'),
+    x('Wszystko jest w porządku.', 'Everything is fine.'),
+    x('Zjadłem wszystko.', 'I ate everything.'),
+  ],
+  'core-ja': [
+    x('Ja idę do sklepu.', 'I am going to the shop.'),
+    x('Ja lubię kawę.', 'I like coffee.'),
+    x('To zrobiłem ja.', 'I did this.'),
+  ],
+  'core-ty': [
+    x('Ty jesteś miły.', 'You are kind.'),
+    x('Czekam na ciebie, ty idziesz.', 'I am waiting for you; you are coming.'),
+    x('Ty masz klucz.', 'You have the key.'),
+  ],
+  'core-on': [
+    x('On czyta książkę.', 'He is reading a book.'),
+    x('On jest w pracy.', 'He is at work.'),
+    x('Lubię, gdy on śpiewa.', 'I like it when he sings.'),
+  ],
+  'core-ona': [
+    x('Ona pije herbatę.', 'She is drinking tea.'),
+    x('Ona mieszka blisko.', 'She lives nearby.'),
+    x('Widzę ją; ona macha.', 'I see her; she is waving.'),
+  ],
+  'core-my': [
+    x('My idziemy do kina.', 'We are going to the cinema.'),
+    x('My mieszkamy tutaj.', 'We live here.'),
+    x('My potrzebujemy pomocy.', 'We need help.'),
+  ],
+  'core-wy': [
+    x('Wy jesteście w domu.', 'You are at home.'),
+    x('Wy lubicie kawę?', 'Do you like coffee?'),
+    x('Czekam, aż wy przyjdziecie.', 'I am waiting until you come.'),
+  ],
+  'core-oni': [
+    x('Oni pracują razem.', 'They work together.'),
+    x('Oni są w parku.', 'They are in the park.'),
+    x('Widzę ich; oni idą.', 'I see them; they are walking.'),
+  ],
+  'core-moj': [
+    x('To jest mój klucz.', 'This is my key.'),
+    x('Mój dom jest mały.', 'My house is small.'),
+    x('Lubię mój rower.', 'I like my bicycle.'),
+  ],
+  'core-twoj': [
+    x('Gdzie jest twój telefon?', 'Where is your phone?'),
+    x('Twój chleb jest świeży.', 'Your bread is fresh.'),
+    x('To twój autobus.', 'This is your bus.'),
+  ],
+  'core-jego': [
+    x('To jego torba.', 'This is his bag.'),
+    x('Lubię jego uśmiech.', 'I like his smile.'),
+    x('Jego dom jest blisko.', 'His house is nearby.'),
+  ],
+  'core-jej': [
+    x('To jej książka.', 'This is her book.'),
+    x('Lubię jej głos.', 'I like her voice.'),
+    x('Jej kawa jest gorąca.', 'Her coffee is hot.'),
+  ],
+  'core-ich': [
+    x('To ich auto.', 'This is their car.'),
+    x('Ich dom jest duży.', 'Their house is big.'),
+    x('Lubię ich psa.', 'I like their dog.'),
+  ],
+  'core-byc': [
+    x('Chcę być w domu.', 'I want to be at home.'),
+    x('To może być trudne.', 'This can be hard.'),
+    x('Miło być tutaj.', 'It is nice to be here.'),
+  ],
+  'core-miec': [
+    x('Chcę mieć czas.', 'I want to have time.'),
+    x('Muszę mieć klucz.', 'I need to have the key.'),
+    x('Lubię mieć wodę w torbie.', 'I like to have water in my bag.'),
+  ],
+  'core-robic': [
+    x('Lubię robić herbatę.', 'I like to make tea.'),
+    x('Muszę robić obiad.', 'I have to make dinner.'),
+    x('Co chcesz robić?', 'What do you want to do?'),
+  ],
+  'core-wiedziec': [
+    x('Chcę wiedzieć prawdę.', 'I want to know the truth.'),
+    x('Nie mogę wiedzieć wszystkiego.', 'I cannot know everything.'),
+    x('Dobrze jest wiedzieć to.', 'It is good to know this.'),
+  ],
+  'core-chciec': [
+    x('Chcę pić wodę.', 'I want to drink water.'),
+    x('Nie chcę iść.', 'I do not want to go.'),
+    x('Czy chcesz kawę?', 'Do you want coffee?'),
+  ],
+  'core-moc': [
+    x('Mogę pomóc.', 'I can help.'),
+    x('Nie mogę dziś przyjść.', 'I cannot come today.'),
+    x('Czy możesz poczekać?', 'Can you wait?'),
+  ],
+  'core-musiec': [
+    x('Muszę iść do pracy.', 'I have to go to work.'),
+    x('Musisz to zrobić.', 'You must do this.'),
+    x('Nie muszę dziś pracować.', 'I do not have to work today.'),
+  ],
+  'core-powiedziec': [
+    x('Chcę powiedzieć prawdę.', 'I want to tell the truth.'),
+    x('Powiedz mi, proszę.', 'Tell me, please.'),
+    x('Nie wiem, co powiedzieć.', 'I do not know what to say.'),
+  ],
+  'core-mowic': [
+    x('Lubię mówić po polsku.', 'I like to speak Polish.'),
+    x('Mów wolno, proszę.', 'Speak slowly, please.'),
+    x('Ona lubi mówić cicho.', 'She likes to speak quietly.'),
+  ],
+  'core-isc': [
+    x('Chcę iść do domu.', 'I want to go home.'),
+    x('Muszę iść teraz.', 'I have to go now.'),
+    x('Lubię iść piechotą.', 'I like to go on foot.'),
+  ],
+  'core-dac': [
+    x('Chcę dać ci kwiat.', 'I want to give you a flower.'),
+    x('Daj mi klucz, proszę.', 'Give me the key, please.'),
+    x('Mogę dać ci wodę.', 'I can give you water.'),
+  ],
+  'core-wziac': [
+    x('Chcę wziąć parasol.', 'I want to take an umbrella.'),
+    x('Weź chleb ze stołu.', 'Take the bread from the table.'),
+    x('Muszę wziąć bilet.', 'I have to take a ticket.'),
+  ],
+  'core-widziec': [
+    x('Chcę widzieć morze.', 'I want to see the sea.'),
+    x('Nie mogę widzieć bez okularów.', 'I cannot see without glasses.'),
+    x('Lubię widzieć przyjaciół.', 'I like to see friends.'),
+  ],
+  'core-jesc': [
+    x('Lubię jeść zupę.', 'I like to eat soup.'),
+    x('Chcę coś jeść.', 'I want to eat something.'),
+    x('Muszę jeść śniadanie.', 'I have to eat breakfast.'),
+  ],
+  'core-pic': [
+    x('Chcę pić wodę.', 'I want to drink water.'),
+    x('Lubię pić herbatę.', 'I like to drink tea.'),
+    x('Nie mogę pić kawy wieczorem.', 'I cannot drink coffee in the evening.'),
+  ],
+  'core-potrzebowac': [
+    x('Potrzebuję pomocy.', 'I need help.'),
+    x('Czy potrzebujesz wody?', 'Do you need water?'),
+    x('Nie potrzebuję nic więcej.', 'I do not need anything else.'),
+  ],
+  'core-znac': [
+    x('Znam tę ulicę.', 'I know this street.'),
+    x('Czy znasz mojego brata?', 'Do you know my brother?'),
+    x('Lubię znać sąsiadów.', 'I like to know the neighbors.'),
+  ],
+  'core-dobrze': [
+    x('Czuję się dobrze.', 'I feel well.'),
+    x('Dobrze, zróbmy to.', 'Okay, let’s do it.'),
+    x('On mówi dobrze po polsku.', 'He speaks Polish well.'),
+  ],
+  'core-dobry': [
+    x('To dobry chleb.', 'This is good bread.'),
+    x('Masz dobry pomysł.', 'You have a good idea.'),
+    x('To był dobry dzień.', 'That was a good day.'),
+  ],
+  'core-zly': [
+    x('To zły pomysł.', 'This is a bad idea.'),
+    x('Pogoda jest zła.', 'The weather is bad.'),
+    x('Nie bądź zły.', 'Do not be angry.'),
+  ],
+  'core-duzy': [
+    x('To duży dom.', 'This is a big house.'),
+    x('Mam duży plecak.', 'I have a big backpack.'),
+    x('Ten pies jest duży.', 'This dog is big.'),
+  ],
+  'core-maly': [
+    x('To mały stół.', 'This is a small table.'),
+    x('Mam mały problem.', 'I have a small problem.'),
+    x('Kot jest mały.', 'The cat is small.'),
+  ],
+  'core-duzo': [
+    x('Mam dużo pracy.', 'I have a lot of work.'),
+    x('Pada dużo deszczu.', 'There is a lot of rain.'),
+    x('Lubię dużo wody.', 'I like a lot of water.'),
+  ],
+  'core-malo': [
+    x('Mam mało czasu.', 'I have little time.'),
+    x('W szklance jest mało wody.', 'There is little water in the glass.'),
+    x('Jem mało mięsa.', 'I eat little meat.'),
+  ],
+  'core-nowy': [
+    x('Mam nowy telefon.', 'I have a new phone.'),
+    x('To nowy płaszcz.', 'This is a new coat.'),
+    x('Lubię nowe książki.', 'I like new books.'),
+  ],
+  'core-inny': [
+    x('Chcę inny chleb.', 'I want a different bread.'),
+    x('To inny autobus.', 'This is a different bus.'),
+    x('Mamy inny pomysł.', 'We have another idea.'),
+  ],
+  'core-jeden': [
+    x('Chcę jeden bilet.', 'I want one ticket.'),
+    x('Został jeden kawałek.', 'There is one piece left.'),
+    x('Mam jeden klucz.', 'I have one key.'),
+  ],
+  'core-dwa': [
+    x('Chcę dwa bilety.', 'I want two tickets.'),
+    x('Mam dwa koty.', 'I have two cats.'),
+    x('Czekam dwie minuty.', 'I wait two minutes.'),
+  ],
+  'core-dzien': [
+    x('Dziś jest ładny dzień.', 'Today is a nice day.'),
+    x('Dobry dzień!', 'Good day!'),
+    x('Pracuję cały dzień.', 'I work all day.'),
+  ],
+  'core-czas': [
+    x('Nie mam czasu.', 'I do not have time.'),
+    x('To dobry czas na herbatę.', 'This is a good time for tea.'),
+    x('Czas iść do domu.', 'It is time to go home.'),
+  ],
+  'core-dom': [
+    x('Idę do domu.', 'I am going home.'),
+    x('Mój dom jest mały.', 'My house is small.'),
+    x('Lubię być w domu.', 'I like being at home.'),
+  ],
+  'core-praca': [
+    x('Idę do pracy.', 'I am going to work.'),
+    x('Praca zaczyna się rano.', 'Work starts in the morning.'),
+    x('Lubię moją pracę.', 'I like my work.'),
+  ],
+  'core-czlowiek': [
+    x('To miły człowiek.', 'This is a kind person.'),
+    x('Widzę człowieka na ulicy.', 'I see a person on the street.'),
+    x('Każdy człowiek potrzebuje snu.', 'Every person needs sleep.'),
+  ],
+  'core-ludzie': [
+    x('Ludzie czekają na autobus.', 'People are waiting for the bus.'),
+    x('Lubię pomagać ludziom.', 'I like helping people.'),
+    x('Na rynku jest dużo ludzi.', 'There are a lot of people in the square.'),
+  ],
+  'core-rzecz': [
+    x('To ważna rzecz.', 'This is an important thing.'),
+    x('Weź tę rzecz ze stołu.', 'Take this thing from the table.'),
+    x('Jedna rzecz na raz.', 'One thing at a time.'),
+  ],
+  'core-pan': [
+    x('Dzień dobry, panie Kowalski.', 'Good day, Mr. Kowalski.'),
+    x('Czy pan chce kawę?', 'Would you like coffee, sir?'),
+    x('Ten pan czeka na autobus.', 'This gentleman is waiting for the bus.'),
+  ],
+  'core-pani': [
+    x('Dzień dobry, pani Anno.', 'Good day, Mrs. Anna.'),
+    x('Czy pani potrzebuje pomocy?', 'Do you need help, ma’am?'),
+    x('Ta pani czyta książkę.', 'This lady is reading a book.'),
+  ],
+  'core-prosze': [
+    x('Proszę, usiądź.', 'Please, sit down.'),
+    x('Kawę, proszę.', 'Coffee, please.'),
+    x('Proszę, oto twój klucz.', 'Here you go, here is your key.'),
+  ],
+  'core-dziekuje': [
+    x('Dziękuję za pomoc.', 'Thank you for the help.'),
+    x('Bardzo dziękuję.', 'Thank you very much.'),
+    x('Dziękuję, to wszystko.', 'Thank you, that is all.'),
+  ],
+  'core-przepraszam': [
+    x('Przepraszam, gdzie jest dworzec?', 'Excuse me, where is the station?'),
+    x('Przepraszam za spóźnienie.', 'Sorry for being late.'),
+    x('Przepraszam, nie zrozumiałem.', 'Sorry, I did not understand.'),
+  ],
+  'core-naprawde': [
+    x('Naprawdę lubię tę zupę.', 'I really like this soup.'),
+    x('To naprawdę dobry pomysł.', 'This is really a good idea.'),
+    x('Naprawdę nie wiem.', 'I really do not know.'),
+  ],
+  'core-zawsze': [
+    x('Zawsze piję kawę rano.', 'I always drink coffee in the morning.'),
+    x('On zawsze pomaga.', 'He always helps.'),
+    x('Zawsze zamykam drzwi.', 'I always lock the door.'),
+  ],
+  'core-nigdy': [
+    x('Nigdy nie jem mięsa.', 'I never eat meat.'),
+    x('On nigdy się nie spóźnia.', 'He is never late.'),
+    x('Nigdy nie byłem w Krakowie.', 'I have never been to Krakow.'),
+  ],
+  'core-tez': [
+    x('Ja też chcę herbatę.', 'I want tea too.'),
+    x('Ona też idzie do sklepu.', 'She is also going to the shop.'),
+    x('To też dobry pomysł.', 'This is also a good idea.'),
+  ],
+  'core-nawet': [
+    x('Nawet dzieci to wiedzą.', 'Even children know this.'),
+    x('Nie mam nawet czasu.', 'I do not even have time.'),
+    x('Nawet w deszczu idę.', 'I go even in the rain.'),
+  ],
+  'core-razem': [
+    x('Idziemy razem do kina.', 'We are going to the cinema together.'),
+    x('Mieszkamy razem.', 'We live together.'),
+    x('Zróbmy to razem.', 'Let’s do this together.'),
+  ],
+  'core-sam': [
+    x('Idę sam do sklepu.', 'I am going to the shop alone.'),
+    x('On mieszka sam.', 'He lives alone.'),
+    x('Zrobiłem to sam.', 'I did this myself.'),
+  ],
+  'core-prawda': [
+    x('To prawda.', 'That is true.'),
+    x('Powiedz mi prawdę.', 'Tell me the truth.'),
+    x('Prawda jest prosta.', 'The truth is simple.'),
+  ],
 }
 
 export function examplesFor(id: string): Example[] {

@@ -158,6 +158,16 @@ export function playCorrect(): void {
   playAction('correct')
 }
 
+export function playVictory(): void {
+  if (!prefs.enabled.correct && !prefs.enabled.result) return
+  fire('victory')
+}
+
+export function playDefeat(): void {
+  if (!prefs.enabled.wrong && !prefs.enabled.result) return
+  fire('defeat')
+}
+
 export function playWrong(): void {
   playAction('wrong')
 }
@@ -299,6 +309,18 @@ function buildCatalog(): Record<string, Float32Array> {
     ding: tone(880, 0.08, 0.18),
     glow: mix(tone(523, 0.07, 0.16), pad(tone(659, 0.1, 0.15), 0.08)),
     finish: mix(tone(659, 0.06, 0.16), pad(tone(988, 0.1, 0.15), 0.09)),
+    victory: mix(
+      bell(523, 0.22, 0.24),
+      pad(bell(659, 0.22, 0.26), 0.12),
+      pad(bell(784, 0.24, 0.28), 0.24),
+      pad(bell(1047, 0.42, 0.3), 0.38),
+    ),
+    defeat: mix(
+      bell(784, 0.2, 0.24),
+      pad(bell(659, 0.22, 0.24), 0.12),
+      pad(bell(523, 0.24, 0.26), 0.24),
+      pad(bell(392, 0.4, 0.28), 0.38),
+    ),
   }
 }
 
@@ -315,6 +337,23 @@ function tone(freq: number, seconds: number, volume: number): Float32Array {
     if (i < fade) env = i / fade
     else if (i > samples.length - fade) env = (samples.length - i) / fade
     samples[i] = Math.sin(2 * Math.PI * freq * t) * volume * env
+  }
+  return samples
+}
+
+function bell(freq: number, seconds: number, volume: number): Float32Array {
+  const samples = new Float32Array(Math.floor(seconds * SAMPLE_RATE))
+  const attack = Math.min(48, Math.floor(samples.length / 10))
+  for (let i = 0; i < samples.length; i++) {
+    const t = i / SAMPLE_RATE
+    const attackEnv = i < attack ? i / attack : 1
+    const decay = Math.exp(-t / (seconds * 0.42)) * Math.max(0, 1 - t / seconds)
+    const env = attackEnv * decay
+    const wave =
+      Math.sin(2 * Math.PI * freq * t) +
+      Math.sin(2 * Math.PI * freq * 2 * t) * 0.18 +
+      Math.sin(2 * Math.PI * freq * 3 * t) * 0.06
+    samples[i] = wave * volume * env
   }
   return samples
 }

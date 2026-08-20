@@ -128,7 +128,7 @@ button {
   border-radius: 50%;
   background: radial-gradient(circle at 50% 42%, rgba(255, 255, 255, 0.1), transparent 64%);
   cursor: pointer;
-  transition: width 780ms cubic-bezier(0.22, 1, 0.36, 1);
+  transition: width 480ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .emoji {
@@ -139,7 +139,7 @@ button {
   transform: scale(1);
   transition:
     transform 180ms ease,
-    font-size 780ms cubic-bezier(0.22, 1, 0.36, 1);
+    font-size 480ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .card.speaking .emoji {
@@ -196,13 +196,16 @@ button {
   overflow-wrap: anywhere;
 }
 
-.hook-ask {
+.hook-line {
   margin: 0;
-  color: var(--muted);
-  font-size: 0.78rem;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
+  color: var(--ink);
+  font-size: clamp(1.02rem, 4.4vw, 1.28rem);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.35;
   text-align: center;
+  max-width: min(100%, 22rem);
+  overflow-wrap: anywhere;
 }
 
 .hook-native {
@@ -221,7 +224,9 @@ button {
   flex-direction: column;
   align-items: center;
   margin: 0 0 22px;
-  transition: margin 780ms cubic-bezier(0.22, 1, 0.36, 1);
+  transition:
+    margin 480ms cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 320ms ease;
 }
 
 .card-learn {
@@ -237,17 +242,17 @@ button {
   flex-basis: 0%;
   min-height: 0;
   pointer-events: none;
-  transition: flex-grow 780ms cubic-bezier(0.22, 1, 0.36, 1);
+  transition: flex-grow 480ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .card-learn .learn {
   margin-top: 18px;
   transition:
-    filter 720ms ease,
-    opacity 640ms ease,
-    transform 720ms ease,
-    font-size 780ms cubic-bezier(0.22, 1, 0.36, 1),
-    margin-top 780ms cubic-bezier(0.22, 1, 0.36, 1);
+    filter 420ms ease,
+    opacity 320ms ease,
+    transform 420ms ease,
+    font-size 480ms cubic-bezier(0.22, 1, 0.36, 1),
+    margin-top 480ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .card-learn.is-active .learn.is-blurred {
@@ -315,6 +320,118 @@ button {
   line-height: 1.35;
 }
 
+.word-hit {
+  color: #ffb45c;
+  font-weight: 700;
+}
+
+.learn .word-hit {
+  color: #ffc56d;
+}
+
+.card-learn[data-beat="hook"] .hook-line {
+  font-size: clamp(1.28rem, 5.6vw, 1.7rem);
+}
+
+.card-learn[data-beat="hook"] .emoji-hit {
+  width: min(56vw, 220px);
+}
+
+.card-learn[data-beat="hook"] .emoji {
+  font-size: clamp(5.2rem, 20vw, 7rem);
+}
+
+.card-learn[data-beat="hook"] .learn,
+.card-learn.is-active[data-beat="hook"] .learn.is-blurred {
+  opacity: 0;
+  filter: none;
+  transform: none;
+  pointer-events: none;
+}
+
+.card-learn[data-beat="reveal"] .hook {
+  opacity: 0.42;
+}
+
+.card-learn[data-beat="reveal"] .hook-line {
+  font-size: clamp(0.92rem, 3.6vw, 1.08rem);
+}
+
+.card-learn[data-beat="reveal"] .learn {
+  font-size: clamp(2.2rem, 8vw, 3.4rem);
+}
+
+.card-learn[data-beat="example"] .hook,
+.card-learn[data-beat="explore"] .hook {
+  opacity: 0;
+  pointer-events: none;
+  margin-bottom: 0;
+  height: 0;
+  overflow: hidden;
+}
+
+.card-learn[data-beat="example"] .emoji-hit,
+.card-learn[data-beat="explore"] .emoji-hit {
+  width: min(42vw, 168px);
+}
+
+.card-learn[data-beat="example"] .emoji,
+.card-learn[data-beat="explore"] .emoji {
+  font-size: clamp(4.2rem, 16vw, 5.8rem);
+}
+
+.card-learn[data-beat="example"] .learn,
+.card-learn[data-beat="explore"] .learn {
+  margin-top: 10px;
+  font-size: clamp(1.7rem, 6vw, 2.4rem);
+}
+
+.card-learn[data-beat="example"]::before,
+.card-learn[data-beat="explore"]::before {
+  flex-grow: 0.06;
+}
+
+.card-learn[data-beat="example"]::after,
+.card-learn[data-beat="explore"]::after {
+  flex-grow: 1.35;
+}
+
+.card-learn[data-beat="recall"] .examples,
+.card-learn[data-beat="payoff"] .examples {
+  opacity: 0;
+  max-height: 0;
+  margin: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.card-learn[data-beat="recall"] .hook-line {
+  font-size: clamp(1.12rem, 4.8vw, 1.45rem);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.card-learn[data-beat="recall"] .learn,
+.card-learn.is-revealed[data-beat="recall"] .learn,
+.card-learn.is-active[data-beat="recall"] .learn.is-blurred {
+  opacity: 0;
+  filter: none;
+  transform: none;
+  pointer-events: none;
+}
+
+.card-learn[data-beat="payoff"] .hook {
+  opacity: 0.38;
+}
+
+.card-learn[data-beat="payoff"] .learn {
+  filter: blur(0);
+  opacity: 1;
+  transform: scale(1);
+  font-size: clamp(2.2rem, 8vw, 3.4rem);
+  margin-top: 18px;
+}
+
 .card-learn.has-examples::before {
   flex-grow: 0.06;
 }
@@ -324,7 +441,7 @@ button {
 }
 
 .card-learn.has-examples .hook {
-  margin-bottom: 10px;
+  display: none;
 }
 
 .card-learn.has-examples .emoji-hit {
@@ -876,6 +993,17 @@ button {
 
 .card.is-correct .emoji {
   animation: yes-pop 0.32s ease;
+}
+
+@keyframes payoff-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.9) translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
 }
 
 @keyframes example-in {

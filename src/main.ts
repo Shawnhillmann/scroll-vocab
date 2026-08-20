@@ -22,7 +22,9 @@ import {
   isSoundAction,
   isSoundId,
   playCorrect,
+  playDefeat,
   playResult,
+  playVictory,
   playScroll,
   playWrong,
   previewSound,
@@ -130,6 +132,9 @@ let exampleWaiting = false
 let skipCurrentRing: (() => void) | null = null
 let spellingReplayWordId = ''
 let spellingReplayStep = 0
+let payoffStep: 'none' | 'ask' | 'answer' | 'done' = 'none'
+let payoffTimer = 0
+let cardReplayTimer = 0
 
 prefetchVoices()
 
@@ -236,7 +241,7 @@ app.innerHTML = `
           <div class="sound-head">
             <div>
               <label>Word reveal</label>
-              <p class="field-note">Ask first, then fade in the word you’re learning</p>
+              <p class="field-note">Hook line first, then fade in the word you’re learning</p>
             </div>
             <button class="choice" type="button" id="toggle-reveal">On</button>
           </div>
@@ -244,8 +249,8 @@ app.innerHTML = `
         <div class="field">
           <div class="sound-head">
             <div>
-              <label>Ask phrase</label>
-              <p class="field-note">Says “How do you say” before the word you know</p>
+              <label>Learn hook</label>
+              <p class="field-note">Says a short reel-style line before the word appears</p>
             </div>
             <button class="choice" type="button" id="toggle-ask">On</button>
           </div>
@@ -509,8 +514,11 @@ function goHome(): void {
   window.clearTimeout(speakTimer)
   window.clearTimeout(revealTimer)
   window.clearTimeout(learnSpokenTimer)
+  window.clearTimeout(payoffTimer)
+  window.clearTimeout(cardReplayTimer)
   learnSpokenGen += 1
   learnGeneration += 1
+  payoffStep = 'none'
   hideResults()
   hideLearnDone()
   observer?.disconnect()
@@ -550,7 +558,7 @@ function scheduleLearnDone(index: number, generation: number): void {
     if (generation !== learnSpokenGen) return
     if (activeIndex !== index || effectiveMode() !== 'learn') return
     showLearnDone()
-  }, 320)
+  }, 2800)
 }
 
 async function continueAsQuiz(mode: ModeId): Promise<void> {
@@ -567,7 +575,8 @@ function showResults(): void {
   qs('#results-sub').textContent =
     ratio === 1 ? 'Perfect round' : ratio >= 0.7 ? 'Really strong' : 'Keep scrolling — you’ll lock these in'
   results.hidden = false
-  playResult()
+  if (ratio >= 0.7) playVictory()
+  else playDefeat()
 }
 
 function setNative(code: LangCode): void {
@@ -635,9 +644,16 @@ function bindFeed(): void {
       if (effectiveMode() !== 'learn' && !card?.classList.contains('answered')) return
       unlockSpeech()
       if (effectiveMode() === 'learn') {
+        cancelCardReplay()
         const revealed = card?.classList.contains('is-revealed')
         if (!revealed) {
           revealLearnCard(index, true)
+        } else if (payoffStep === 'ask') {
+          if (exampleWaiting) skipCurrentRing?.()
+          else showPayoffAnswer(index)
+        } else if (payoffStep === 'answer') {
+          window.clearTimeout(payoffTimer)
+          speakPayoffAnswer(index)
         } else if (!examplesDone) {
           if (exampleWaiting) skipCurrentRing?.()
           else skipToNextExample(index)
@@ -680,7 +696,9 @@ function bindFeed(): void {
       event.stopPropagation()
       const card = learn.closest<HTMLElement>('.card-learn')
       if (!card?.classList.contains('is-revealed')) return
+      if (payoffStep === 'ask' || payoffStep === 'answer') return
       if (exampleWaiting || card.classList.contains('speaking')) return
+      cancelCardReplay()
       replaySpelling(index)
     })
   })
@@ -719,7 +737,7 @@ function cardMarkup(word: Word, index: number, pool: Word[]): string {
   const hint =
     mode === 'learn'
       ? settings.sounds.reveal
-        ? 'Listen · the word appears'
+        ? 'Watch · word coming'
         : 'Tap emoji to replay · swipe up'
       : mode === 'choice'
         ? 'Pick the word'
@@ -749,20 +767,19 @@ function cardMarkup(word: Word, index: number, pool: Word[]): string {
        <p class="learn" data-learn hidden></p>`
     : settings.sounds.reveal
       ? `<div class="hook">
-           <p class="hook-ask"${settings.sounds.ask ? '' : ' hidden'}>${escapeHtml(hookFor(index, settings.native).label)}</p>
-           <p class="hook-native" data-native>${escapeHtml(displayPromptWord(word.forms[settings.native]))}</p>
+           <p class="hook-line"${settings.sounds.ask ? '' : ' hidden'} data-hook>${escapeHtml(hookLine(index, word.forms[settings.native]))}</p>
          </div>
          <button class="emoji-hit" type="button" aria-label="Replay pronunciation">
            ${revealRingMarkup()}
            <span class="emoji">${word.emoji}</span>
          </button>
-         <p class="learn is-blurred" data-learn aria-hidden="true">${answer}</p>
+         <p class="learn is-blurred" data-learn aria-hidden="true">${highlightLearnWord(word.forms[settings.learning])}</p>
          <div class="examples" data-examples></div>`
       : `<button class="emoji-hit" type="button" aria-label="Replay pronunciation">
            ${revealRingMarkup()}
            <span class="emoji">${word.emoji}</span>
          </button>
-         <p class="learn" data-learn>${answer}</p>
+         <p class="learn" data-learn>${highlightLearnWord(word.forms[settings.learning])}</p>
          <div class="examples" data-examples></div>
          <p class="native" data-native>${native}</p>`
 
@@ -780,7 +797,7 @@ function cardMarkup(word: Word, index: number, pool: Word[]): string {
   }
 
   return `
-    <article class="card card-learn${settings.sounds.reveal ? '' : ' is-revealed'}" data-index="${index}" data-answer="${answer}" style="background:${word.tint}">
+    <article class="card card-learn${settings.sounds.reveal ? '' : ' is-revealed'}" data-index="${index}" data-answer="${answer}"${settings.sounds.reveal ? ' data-beat="hook"' : ' data-beat="reveal"'} style="background:${word.tint}">
       ${prompt}
       <p class="hint">${hint}</p>
     </article>
@@ -869,42 +886,103 @@ function scheduleAdvance(index: number): void {
   }, 1100)
 }
 
-function displayPromptWord(value: string): string {
-  const text = value.trim()
-  if (!text) return '?'
-  const capped = text.charAt(0).toUpperCase() + text.slice(1)
-  return capped.endsWith('?') ? capped : `${capped}?`
-}
-
 type HookLine = {
-  label: string
-  speak: (word: string) => string
+  format: (word: string) => string
 }
 
 const HOOKS: Record<LangCode, HookLine[]> = {
   en: [
-    { label: 'How do you say', speak: (word) => `How do you say ${word}?` },
-    { label: 'Do you know', speak: (word) => `Do you know ${word}?` },
-    { label: 'How would you say', speak: (word) => `How would you say ${word}?` },
-    { label: 'Can you say', speak: (word) => `Can you say ${word}?` },
-    { label: 'What’s', speak: (word) => `What's ${word}?` },
+    { format: (word) => `3 ways to remember “${word}”` },
+    { format: (word) => `3 examples to help you remember “${word}”` },
+    { format: (word) => `Here’s how to remember “${word}”` },
+    { format: (word) => `Let’s make “${word}” easier to remember` },
+    { format: (word) => `3 quick examples of “${word}”` },
+    { format: (word) => `Learn “${word}” with 3 examples` },
+    { format: (word) => `See “${word}” in 3 sentences` },
+    { format: (word) => `Remember “${word}” with these 3 sentences` },
+    { format: (word) => `Here are 3 ways to use “${word}”` },
   ],
   pl: [
-    { label: 'Jak się mówi', speak: (word) => `Jak się mówi ${word}?` },
-    { label: 'Znasz', speak: (word) => `Znasz ${word}?` },
-    { label: 'Jak powiedzieć', speak: (word) => `Jak powiedzieć ${word}?` },
-    { label: 'Potrafisz powiedzieć', speak: (word) => `Potrafisz powiedzieć ${word}?` },
-    { label: 'A może', speak: (word) => `A może ${word}?` },
+    { format: (word) => `3 sposoby na zapamiętanie „${word}”` },
+    { format: (word) => `3 przykłady, które pomogą zapamiętać „${word}”` },
+    { format: (word) => `Oto jak zapamiętać „${word}”` },
+    { format: (word) => `Ułatw sobie „${word}”` },
+    { format: (word) => `3 szybkie przykłady „${word}”` },
+    { format: (word) => `Naucz się „${word}” na 3 przykładach` },
+    { format: (word) => `Zobacz „${word}” w 3 zdaniach` },
+    { format: (word) => `Zapamiętaj „${word}” dzięki tym 3 zdaniom` },
+    { format: (word) => `Oto 3 sposoby użycia „${word}”` },
   ],
 }
 
 function hookFor(index: number, code: LangCode): HookLine {
   const lines = HOOKS[code]
   const fallback: HookLine = {
-    label: 'How do you say',
-    speak: (word) => `How do you say ${word}?`,
+    format: (word) => `3 ways to remember “${word}”`,
   }
   return lines[index % lines.length] ?? fallback
+}
+
+function hookLine(index: number, word: string): string {
+  const text = word.trim()
+  if (!text) return '3 ways to remember this word'
+  const capped = text.charAt(0).toUpperCase() + text.slice(1)
+  return hookFor(index, settings.native).format(capped)
+}
+
+function hookRingMs(text: string): number {
+  return Math.min(3400, Math.max(1800, 1000 + text.length * 58))
+}
+
+function exampleRingMs(text: string, step: number): number {
+  const floor = step === 0 ? 1250 : step === 1 ? 900 : 750
+  const ceiling = step === 0 ? 1700 : step === 1 ? 1250 : 1000
+  return Math.min(ceiling, Math.max(floor, floor - 80 + text.length * 16))
+}
+
+function recallRingMs(text: string): number {
+  return Math.min(3400, Math.max(1900, 1050 + text.length * 58))
+}
+
+type LearnBeat = 'hook' | 'reveal' | 'example' | 'recall' | 'payoff' | 'explore'
+
+function setLearnBeat(card: Element | null, beat: LearnBeat): void {
+  if (!card) return
+  card.setAttribute('data-beat', beat)
+  card.classList.toggle('has-examples', beat === 'example' || beat === 'explore')
+  card.classList.toggle('is-recall', beat === 'recall')
+  card.classList.toggle('is-recall-revealed', beat === 'payoff')
+}
+
+function payoffQuestion(index: number, word: string): string {
+  const text = word.trim()
+  const capped = text ? text.charAt(0).toUpperCase() + text.slice(1) : ''
+  const en: string[] = capped
+    ? [
+        `What was “${capped}”?`,
+        `Can you remember “${capped}”?`,
+        `Do you remember “${capped}”?`,
+        `How would you say “${capped}”?`,
+        `Still got “${capped}”?`,
+        `Quick — what was “${capped}”?`,
+        `How do you say “${capped}”?`,
+        `Name this: “${capped}”`,
+      ]
+    : ['What was that?']
+  const pl: string[] = capped
+    ? [
+        `Co to było „${capped}”?`,
+        `Pamiętasz „${capped}”?`,
+        `Potrafisz przypomnieć sobie „${capped}”?`,
+        `Jak powiedzieć „${capped}”?`,
+        `Pamiętasz jeszcze „${capped}”?`,
+        `Szybko — co to było „${capped}”?`,
+        `Jak jest „${capped}”?`,
+        `Nazwij to: „${capped}”`,
+      ]
+    : ['Co to było?']
+  const lines = settings.native === 'pl' ? pl : en
+  return lines[index % lines.length] ?? lines[0] ?? 'What was that?'
 }
 
 function revealRingMarkup(): string {
@@ -988,7 +1066,10 @@ function startLearnHook(index: number): void {
   nextExample = 0
   examplesDone = false
   exampleWaiting = false
+  payoffStep = 'none'
   skipCurrentRing = null
+  window.clearTimeout(payoffTimer)
+  window.clearTimeout(cardReplayTimer)
   stopSpeech()
   resetRevealRings()
   feed.querySelectorAll('.card-learn').forEach((card) => clearLearnExamples(card))
@@ -997,6 +1078,7 @@ function startLearnHook(index: number): void {
     feed.querySelectorAll('.card-learn').forEach((card) => {
       card.classList.add('is-revealed')
       card.classList.remove('speaking', 'is-waiting')
+      setLearnBeat(card, 'reveal')
       const learn = card.querySelector<HTMLElement>('[data-learn]')
       learn?.classList.remove('is-blurred')
       learn?.removeAttribute('aria-hidden')
@@ -1009,26 +1091,25 @@ function startLearnHook(index: number): void {
 
   feed.querySelectorAll('.card-learn').forEach((card) => {
     card.classList.remove('is-revealed', 'speaking', 'is-waiting')
+    setLearnBeat(card, 'hook')
     const learn = card.querySelector<HTMLElement>('[data-learn]')
     if (learn) {
       learn.classList.add('is-blurred')
       learn.setAttribute('aria-hidden', 'true')
     }
     const hint = card.querySelector('.hint')
-    if (hint) hint.textContent = 'Listen · the word appears'
+    if (hint) hint.textContent = 'Watch · word coming'
   })
 
   const card = feed.querySelector(`[data-index="${index}"]`)
   card?.classList.add('speaking')
-  const hook = hookFor(index, settings.native)
-  const ask = card?.querySelector<HTMLElement>('.hook-ask')
   const nativeWord = word.forms[settings.native]
-  if (ask) {
-    ask.hidden = !settings.sounds.ask
-    ask.textContent = hook.label
+  const prompt = hookLine(index, nativeWord)
+  const hookEl = card?.querySelector<HTMLElement>('[data-hook]')
+  if (hookEl) {
+    hookEl.hidden = !settings.sounds.ask
+    hookEl.textContent = prompt
   }
-  const nativeEl = card?.querySelector('[data-native]')
-  if (nativeEl) nativeEl.textContent = displayPromptWord(nativeWord)
 
   const revealWhenRingCompletes = (durationMs: number): void => {
     if (!card) {
@@ -1045,17 +1126,19 @@ function startLearnHook(index: number): void {
   }
 
   if (!settings.sounds.voice) {
-    revealWhenRingCompletes(2300)
+    revealWhenRingCompletes(1100)
     return
   }
 
   const native = getLanguage(settings.native)
-  const prompt = settings.sounds.ask ? hook.speak(nativeWord) : displayPromptWord(nativeWord)
-  const waitMs = Math.min(5200, Math.max(2800, 1900 + prompt.length * 90))
-  speakTimer = window.setTimeout(() => {
-    if (generation !== learnGeneration || activeIndex !== index) return
-    speak(prompt, native.bcp47, native.voiceLangs)
-  }, 40)
+  const spoken = settings.sounds.ask ? prompt : ''
+  const waitMs = spoken ? hookRingMs(spoken) : 1200
+  if (spoken) {
+    speakTimer = window.setTimeout(() => {
+      if (generation !== learnGeneration || activeIndex !== index) return
+      speak(spoken, native.bcp47, native.voiceLangs)
+    }, 40)
+  }
   revealWhenRingCompletes(waitMs)
 }
 
@@ -1068,7 +1151,9 @@ function revealLearnCard(index: number, force = false): void {
   window.clearTimeout(revealTimer)
   card.classList.add('is-revealed')
   card.classList.remove('speaking')
+  setLearnBeat(card, 'reveal')
   finishRevealRing(card)
+  stopSpeech()
   const learn = card.querySelector<HTMLElement>('[data-learn]')
   if (learn) {
     learn.classList.remove('is-blurred')
@@ -1077,16 +1162,39 @@ function revealLearnCard(index: number, force = false): void {
   const hint = card.querySelector('.hint')
   if (hint) {
     hint.textContent = word.examples.length
-      ? 'Listen · tap word to spell'
+      ? 'Examples coming · tap word to spell'
       : 'Tap emoji to replay · tap word to spell'
   }
-  speakWord(index, force, 'examples')
+  window.clearTimeout(speakTimer)
+  speakTimer = window.setTimeout(() => {
+    if (activeIndex !== index) return
+    speakWord(index, force, 'examples')
+  }, 220)
 }
 
 function clearLearnExamples(card: Element): void {
-  card.classList.remove('has-examples')
+  card.classList.remove('has-examples', 'is-recall', 'is-recall-revealed')
+  card.removeAttribute('data-beat')
   const box = card.querySelector('[data-examples]')
   if (box) box.replaceChildren()
+  const learn = card.querySelector<HTMLElement>('[data-learn]')
+  if (learn) {
+    learn.hidden = false
+    learn.classList.remove('is-blurred')
+    learn.removeAttribute('aria-hidden')
+  }
+}
+
+function restoreLearnWord(learn: HTMLElement, text: string): void {
+  learn.innerHTML = highlightLearnWord(text)
+}
+
+function showLearnCheckmark(learn: HTMLElement, text: string): void {
+  learn.innerHTML = `${highlightLearnWord(text)} `
+  const mark = document.createElement('span')
+  mark.className = 'payoff-check'
+  mark.textContent = '✓'
+  learn.append(mark)
 }
 
 function replayExample(item: HTMLElement, text: string): void {
@@ -1149,11 +1257,7 @@ function queueExample(index: number, step: number): void {
 
   const examples = word.examples.slice(0, 3)
   if (step >= examples.length) {
-    examplesDone = true
-    exampleWaiting = false
-    const hint = card?.querySelector('.hint')
-    if (hint) hint.textContent = 'Tap sentence or word · swipe up'
-    scheduleLearnDone(index, learnSpokenGen)
+    startPayoff(index)
     return
   }
 
@@ -1164,14 +1268,12 @@ function queueExample(index: number, step: number): void {
   exampleWaiting = true
   examplesDone = false
   const generation = learnGeneration
-  const durationMs = settings.sounds.voice
-    ? Math.min(4200, Math.max(2200, 1600 + example.pl.length * 80))
-    : 2000
+  const durationMs = settings.sounds.voice ? exampleRingMs(example.pl, step) : step === 0 ? 850 : 620
 
   const hint = card?.querySelector('.hint')
-  if (hint) hint.textContent = 'Listen · a sentence'
+  if (hint) hint.textContent = step === 0 ? 'First example · tap to skip' : 'Next example · tap to skip'
 
-  if (step === 0) card?.classList.add('has-examples')
+  setLearnBeat(card, 'example')
 
   if (!card) {
     revealTimer = window.setTimeout(() => {
@@ -1204,9 +1306,10 @@ function showExample(index: number, step: number): void {
     item.type = 'button'
     item.className = 'example'
     item.setAttribute('aria-label', 'Replay sentence')
-    item.innerHTML = `<p class="example-pl">${escapeHtml(example.pl)}</p><p class="example-en">${escapeHtml(example.en)}</p>`
+    item.innerHTML = `<p class="example-pl">${highlightTerms(example.pl, [word.forms[settings.learning]])}</p><p class="example-en">${highlightTerms(example.en, [word.forms[settings.learning]])}</p>`
     item.addEventListener('click', (event) => {
       event.stopPropagation()
+      cancelCardReplay()
       replayExample(item, example.pl)
     })
     box.append(item)
@@ -1219,11 +1322,15 @@ function showExample(index: number, step: number): void {
     if (offerGen !== learnSpokenGen) return
     if (generation !== learnGeneration || activeIndex !== index) return
     window.clearTimeout(learnSpokenTimer)
-    queueExample(index, step + 1)
+    learnSpokenTimer = window.setTimeout(() => {
+      if (offerGen !== learnSpokenGen) return
+      if (generation !== learnGeneration || activeIndex !== index) return
+      queueExample(index, step + 1)
+    }, 180)
   }
 
   if (!settings.sounds.voice) {
-    learnSpokenTimer = window.setTimeout(afterSpoken, 700)
+    learnSpokenTimer = window.setTimeout(afterSpoken, step === 0 ? 520 : 380)
     return
   }
 
@@ -1232,9 +1339,161 @@ function showExample(index: number, step: number): void {
   window.setTimeout(() => card.classList.remove('speaking'), 900)
 
   const polish = getLanguage('pl')
-  const fallbackMs = Math.min(6500, Math.max(2500, 1200 + example.pl.length * 140))
+  const fallbackMs = Math.min(7200, Math.max(3200, 1600 + example.pl.length * 160))
   speak(example.pl, polish.bcp47, polish.voiceLangs, afterSpoken)
   learnSpokenTimer = window.setTimeout(afterSpoken, fallbackMs)
+}
+
+function startPayoff(index: number): void {
+  const word = feedWords[index]
+  const card = feed.querySelector<HTMLElement>(`[data-index="${index}"]`)
+  if (!word || !card || effectiveMode() !== 'learn' || activeIndex !== index) return
+
+  payoffStep = 'ask'
+  exampleWaiting = true
+  examplesDone = false
+  stopSpeech()
+
+  setLearnBeat(card, 'recall')
+
+  const hook = card.querySelector<HTMLElement>('[data-hook]')
+  const learn = card.querySelector<HTMLElement>('[data-learn]')
+  const question = payoffQuestion(index, word.forms[settings.native])
+
+  if (hook) {
+    hook.hidden = false
+    hook.textContent = question
+  }
+  if (learn) {
+    learn.hidden = false
+    learn.classList.add('is-blurred')
+    learn.setAttribute('aria-hidden', 'true')
+    restoreLearnWord(learn, word.forms[settings.learning])
+  }
+
+  const hint = card.querySelector('.hint')
+  if (hint) hint.textContent = 'Quick recall · tap to skip'
+
+  const generation = learnGeneration
+  const durationMs = settings.sounds.voice ? recallRingMs(question) : 1400
+
+  if (settings.sounds.voice) {
+    const native = getLanguage(settings.native)
+    speak(question, native.bcp47, native.voiceLangs)
+  }
+
+  resetRevealRing(card)
+  startRevealRing(card, durationMs, () => {
+    if (generation !== learnGeneration || activeIndex !== index) return
+    showPayoffAnswer(index)
+  })
+}
+
+function showPayoffAnswer(index: number): void {
+  const word = feedWords[index]
+  const card = feed.querySelector<HTMLElement>(`[data-index="${index}"]`)
+  if (!word || !card || activeIndex !== index || payoffStep !== 'ask') return
+
+  exampleWaiting = false
+  payoffStep = 'answer'
+  finishRevealRing(card)
+  window.clearTimeout(payoffTimer)
+
+  const learn = card.querySelector<HTMLElement>('[data-learn]')
+  const answer = word.forms[settings.learning]
+  if (learn) {
+    learn.classList.remove('is-blurred')
+    learn.removeAttribute('aria-hidden')
+    showLearnCheckmark(learn, answer)
+  }
+  setLearnBeat(card, 'payoff')
+
+  payoffTimer = window.setTimeout(() => {
+    if (payoffStep !== 'answer' || activeIndex !== index) return
+    speakPayoffAnswer(index)
+  }, 480)
+}
+
+function completeRecall(index: number, offerGen: number): void {
+  const word = feedWords[index]
+  const card = feed.querySelector<HTMLElement>(`[data-index="${index}"]`)
+  if (!word || !card || activeIndex !== index) return
+
+  setLearnBeat(card, word.examples.length > 0 ? 'explore' : 'reveal')
+
+  const learn = card.querySelector<HTMLElement>('[data-learn]')
+  const hook = card.querySelector<HTMLElement>('[data-hook]')
+  const answer = word.forms[settings.learning]
+
+  if (learn) {
+    learn.classList.remove('is-blurred')
+    learn.removeAttribute('aria-hidden')
+    showLearnCheckmark(learn, answer)
+  }
+  if (hook) {
+    hook.hidden = true
+  }
+
+  payoffStep = 'done'
+  examplesDone = true
+  const hint = card.querySelector('.hint')
+  if (hint) hint.textContent = 'Read the sentences · swipe up'
+  scheduleCardReplay(index)
+  scheduleLearnDone(index, offerGen)
+}
+
+function cancelCardReplay(): void {
+  window.clearTimeout(cardReplayTimer)
+}
+
+function scheduleCardReplay(index: number): void {
+  window.clearTimeout(cardReplayTimer)
+  if (effectiveMode() !== 'learn') return
+  const generation = learnGeneration
+  const spokenGen = learnSpokenGen
+  cardReplayTimer = window.setTimeout(() => {
+    if (generation !== learnGeneration || spokenGen !== learnSpokenGen) return
+    if (activeIndex !== index || payoffStep !== 'done') return
+    if (learnDoneShown || !learnDone.hidden) return
+    startLearnHook(index)
+  }, 3000)
+}
+
+function speakPayoffAnswer(index: number): void {
+  const word = feedWords[index]
+  const card = feed.querySelector<HTMLElement>(`[data-index="${index}"]`)
+  if (!word || !card || activeIndex !== index || payoffStep !== 'answer') return
+
+  window.clearTimeout(payoffTimer)
+  stopSpeech()
+  const generation = learnGeneration
+  const offerGen = ++learnSpokenGen
+  window.clearTimeout(learnSpokenTimer)
+  const answer = word.forms[settings.learning]
+
+  let finished = false
+  const finishPayoff = (): void => {
+    if (finished || offerGen !== learnSpokenGen) return
+    if (generation !== learnGeneration || activeIndex !== index) return
+    finished = true
+    window.clearTimeout(learnSpokenTimer)
+    playVictory()
+    completeRecall(index, offerGen)
+  }
+
+  if (!settings.sounds.voice) {
+    finishPayoff()
+    return
+  }
+
+  feed.querySelectorAll('.card').forEach((item) => item.classList.remove('speaking'))
+  card.classList.add('speaking')
+  window.setTimeout(() => card.classList.remove('speaking'), 900)
+
+  const learning = getLanguage(settings.learning)
+  const fallbackMs = Math.min(6500, Math.max(2500, 1200 + answer.length * 140))
+  speak(answer, learning.bcp47, learning.voiceLangs, finishPayoff)
+  learnSpokenTimer = window.setTimeout(finishPayoff, fallbackMs)
 }
 
 function speakWord(index: number, force = false, then: 'examples' | 'none' = 'none'): void {
@@ -1257,7 +1516,7 @@ function speakWord(index: number, force = false, then: 'examples' | 'none' = 'no
   }
 
   if (!force && !settings.sounds.voice) {
-    const wait = then === 'examples' ? 400 : index >= feedWords.length - 1 ? 700 : 0
+    const wait = then === 'examples' ? 220 : index >= feedWords.length - 1 ? 700 : 0
     if (wait) learnSpokenTimer = window.setTimeout(afterSpoken, wait)
     else afterSpoken()
     return
@@ -1279,17 +1538,11 @@ function refreshWords(): void {
     const word = feedWords[index]
     if (!word) return
     const learn = card.querySelector('[data-learn]')
-    const native = card.querySelector('[data-native]')
-    const ask = card.querySelector<HTMLElement>('.hook-ask')
-    if (learn) learn.textContent = word.forms[settings.learning]
-    if (native) {
-      native.textContent = settings.sounds.reveal
-        ? displayPromptWord(word.forms[settings.native])
-        : word.forms[settings.native]
-    }
-    if (ask) {
-      ask.hidden = !settings.sounds.ask
-      ask.textContent = hookFor(index, settings.native).label
+    const hook = card.querySelector<HTMLElement>('[data-hook]')
+    if (learn) learn.innerHTML = highlightLearnWord(word.forms[settings.learning])
+    if (hook) {
+      hook.hidden = !settings.sounds.ask
+      hook.textContent = hookLine(index, word.forms[settings.native])
     }
   })
 }
@@ -1418,6 +1671,54 @@ function escapeHtml(value: string): string {
     .replaceAll('<', '&lt;')
     .replaceAll('>', '&gt;')
     .replaceAll('"', '&quot;')
+}
+
+function escapeRegex(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
+function highlightLearnWord(text: string): string {
+  return `<span class="word-hit">${escapeHtml(text)}</span>`
+}
+
+function stemsFor(term: string): string[] {
+  const normalized = term.normalize('NFC').trim().toLowerCase()
+  if (!normalized) return []
+  const parts = normalized.split(/\s+/).filter(Boolean)
+  const stems = [...parts]
+  if (parts.length > 1) stems.unshift(normalized)
+  for (const part of parts) {
+    if (part.length >= 6) {
+      stems.push(part.slice(0, -1), part.slice(0, -2))
+    } else if (part.length >= 4) {
+      stems.push(part.slice(0, -1))
+    }
+  }
+  return [...new Set(stems)]
+}
+
+function highlightTerms(text: string, terms: string[]): string {
+  const stems = [...new Set(terms.flatMap(stemsFor))]
+    .filter((stem) => stem.length >= 3)
+    .sort((a, b) => b.length - a.length)
+  if (!stems.length) return escapeHtml(text)
+
+  const letter = '[A-Za-zÀ-žĄąĆćĘęŁłŃńÓóŚśŹźŻż]'
+  const body = stems
+    .map((stem) => (stem.length <= 3 ? escapeRegex(stem) : `${escapeRegex(stem)}${letter}*`))
+    .join('|')
+  const pattern = new RegExp(`(?<!${letter})(?:${body})(?!${letter})`, 'gi')
+
+  let cursor = 0
+  let html = ''
+  for (const match of text.matchAll(pattern)) {
+    const start = match.index ?? 0
+    html += escapeHtml(text.slice(cursor, start))
+    html += `<span class="word-hit">${escapeHtml(match[0])}</span>`
+    cursor = start + match[0].length
+  }
+  html += escapeHtml(text.slice(cursor))
+  return html
 }
 
 function qs<T extends HTMLElement>(selector: string): T {
