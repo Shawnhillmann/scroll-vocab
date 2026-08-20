@@ -1331,7 +1331,7 @@ function showExample(index: number, step: number): void {
       if (offerGen !== learnSpokenGen) return
       if (generation !== learnGeneration || activeIndex !== index) return
       queueExample(index, step + 1)
-    }, 180)
+    }, 1180)
   }
 
   if (!settings.sounds.voice) {
