@@ -1,5 +1,8 @@
 let unlocked = false
+let primed = false
 let speakSeq = 0
+let queuedSpeak = 0
+let lastCancel = 0
 const heldUtterances: SpeechSynthesisUtterance[] = []
 
 const qualityBoost: Array<[RegExp, number]> = [
@@ -19,11 +22,60 @@ const qualityPenalty: Array<[RegExp, number]> = [
   [/fred|whisper/i, -40],
 ]
 
+function isIos(): boolean {
+  const ua = navigator.userAgent
+  if (/iP(hone|ad|od)/i.test(ua)) return true
+  return /Macintosh/i.test(ua) && 'ontouchend' in document
+}
+
+function cancelEngine(): void {
+  lastCancel = performance.now()
+  try {
+    speechSynthesis.cancel()
+  } catch {
+    /* Safari can throw if the engine is not ready */
+  }
+}
+
+function waitAfterCancel(): number {
+  if (!isIos()) return 40
+  return Math.max(0, 220 - (performance.now() - lastCancel))
+}
+
+function kickIos(): void {
+  if (!isIos()) return
+  try {
+    speechSynthesis.pause()
+    speechSynthesis.resume()
+  } catch {
+    /* older WebKit */
+  }
+}
+
 export function unlockSpeech(): void {
   unlocked = true
+  if (typeof speechSynthesis === 'undefined') return
+  try {
+    speechSynthesis.getVoices()
+    if (primed) {
+      kickIos()
+      return
+    }
+    primed = true
+    const prime = new SpeechSynthesisUtterance('.')
+    prime.volume = 0
+    prime.rate = 1
+    prime.pitch = 1
+    heldUtterances.push(prime)
+    speechSynthesis.speak(prime)
+    kickIos()
+  } catch {
+    primed = false
+  }
 }
 
 export function prefetchVoices(): void {
+  if (typeof speechSynthesis === 'undefined') return
   speechSynthesis.getVoices()
   speechSynthesis.addEventListener('voiceschanged', () => {
     speechSynthesis.getVoices()
@@ -43,37 +95,53 @@ export function speak(
   }
 
   const seq = ++speakSeq
-  if (speechSynthesis.speaking || speechSynthesis.pending) {
-    speechSynthesis.cancel()
-  }
-  const utterance = new SpeechSynthesisUtterance(text)
-  utterance.lang = bcp47
-  const nextRate = 0.94 * Math.max(0.4, Math.min(1.4, rateMultiplier))
-  utterance.rate = nextRate
-  utterance.pitch = 1
-  utterance.volume = 1
+  window.clearTimeout(queuedSpeak)
 
-  const voice = pickVoice(voiceLangs, bcp47)
-  if (voice) {
-    utterance.voice = voice
-    utterance.lang = voice.lang || bcp47
-  }
-
-  const done = (): void => {
+  const run = (): void => {
     if (seq !== speakSeq) return
-    onEnd?.()
-  }
-  utterance.onend = done
-  utterance.onerror = done
 
-  heldUtterances.push(utterance)
-  if (heldUtterances.length > 3) heldUtterances.shift()
-  speechSynthesis.speak(utterance)
+    const utterance = new SpeechSynthesisUtterance(text)
+    utterance.lang = bcp47
+    const nextRate = 0.94 * Math.max(0.4, Math.min(1.4, rateMultiplier))
+    utterance.rate = nextRate
+    utterance.pitch = 1
+    utterance.volume = 1
+
+    const voice = pickVoice(voiceLangs, bcp47)
+    if (voice) {
+      utterance.voice = voice
+      utterance.lang = voice.lang || bcp47
+    }
+
+    const done = (): void => {
+      if (seq !== speakSeq) return
+      onEnd?.()
+    }
+    utterance.onend = done
+    utterance.onerror = done
+
+    heldUtterances.push(utterance)
+    if (heldUtterances.length > 3) heldUtterances.shift()
+    try {
+      speechSynthesis.speak(utterance)
+      kickIos()
+    } catch {
+      done()
+    }
+  }
+
+  if (speechSynthesis.speaking || speechSynthesis.pending) {
+    cancelEngine()
+  }
+  const delay = waitAfterCancel()
+  if (delay > 0) queuedSpeak = window.setTimeout(run, delay)
+  else run()
 }
 
 export function stopSpeech(): void {
   speakSeq += 1
-  speechSynthesis.cancel()
+  window.clearTimeout(queuedSpeak)
+  cancelEngine()
 }
 
 function pickVoice(voiceLangs: string[], bcp47: string): SpeechSynthesisVoice | undefined {

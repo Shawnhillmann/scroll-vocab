@@ -396,6 +396,8 @@ document.querySelectorAll('[data-mode-choices]').forEach((root) => {
 })
 
 qs('#start').addEventListener('click', () => {
+  unlockSpeech()
+  void unlockSfx()
   void beginSession()
 })
 qs('#go-home').addEventListener('click', goHome)
@@ -474,7 +476,10 @@ const stage = qs<HTMLElement>('.stage')
 stage.addEventListener('pointerdown', armAudio)
 stage.addEventListener('touchstart', armAudio, { passive: true })
 document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'visible') unlockSfx()
+  if (document.visibilityState === 'visible') {
+    unlockSfx()
+    unlockSpeech()
+  }
 })
 
 window.addEventListener('keydown', (event) => {
