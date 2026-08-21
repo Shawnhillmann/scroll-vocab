@@ -1,11 +1,13 @@
 import './style.css'
 import {
-  categories,
+  categoryGroups,
+  categoriesInGroup,
   getCategory,
   getLanguage,
   isCategoryId,
   isLangCode,
   isModeId,
+  isSheetCategory,
   languages,
   modes,
   words,
@@ -15,6 +17,11 @@ import {
   type ModeId,
   type Word,
 } from './words.ts'
+import {
+  isConjugationCategory,
+  sheetsInCategory,
+  type ConjugationSheet,
+} from './conjugations.ts'
 import { prefetchVoices, speak, stopSpeech, unlockSpeech } from './speech.ts'
 import {
   applySoundPrefs,
@@ -75,6 +82,9 @@ function loadSettings(): Settings {
   if (settings.native === settings.learning) {
     settings.learning = otherLanguage(settings.native)
   }
+  if (settings.category && isSheetCategory(settings.category) && settings.mode !== 'learn') {
+    settings.mode = 'learn'
+  }
   return settings
 }
 
@@ -106,13 +116,29 @@ function saveSettings(): void {
 }
 
 function activePool(): Word[] {
-  if (!settings.category) return []
+  if (!settings.category || isSheetCategory(settings.category)) return []
   return wordsInCategory(settings.category)
+}
+
+function activeSheets(): ConjugationSheet[] {
+  if (!settings.category || !isConjugationCategory(settings.category)) return []
+  return sheetsInCategory(settings.category)
+}
+
+function activeCount(): number {
+  if (!settings.category) return 0
+  if (isSheetCategory(settings.category)) return activeSheets().length
+  return activePool().length
+}
+
+function categorySupportsQuiz(id: CategoryId | null): boolean {
+  return Boolean(id && !isSheetCategory(id))
 }
 
 const settings = loadSettings()
 applySoundPrefs(settings.sounds)
 let feedWords: Word[] = []
+let feedSheets: ConjugationSheet[] = []
 let feedKey = ''
 let activeIndex = 0
 let speakTimer = 0
@@ -168,6 +194,7 @@ app.innerHTML = `
         <p class="results-sub" id="learn-done-sub">Quiz these words, or go home to pick a new category.</p>
         <div class="learn-done-actions">
           <button class="start" type="button" id="learn-done-choice">Multiple choice</button>
+          <button class="start start-alt" type="button" id="learn-done-blank">Fill in the blank</button>
           <button class="start start-alt" type="button" id="learn-done-type">Typing</button>
           <button class="ghost-link" type="button" id="learn-done-home">Home</button>
         </div>
@@ -188,7 +215,7 @@ app.innerHTML = `
         </div>
         <div class="field">
           <label>Category</label>
-          <div class="cat-grid" data-category-choices></div>
+          <div class="cat-groups" data-category-choices></div>
         </div>
         <div class="field">
           <label>Practice</label>
@@ -212,7 +239,7 @@ app.innerHTML = `
         </div>
         <div class="field">
           <label>Category</label>
-          <div class="cat-grid" data-category-choices></div>
+          <div class="cat-groups" data-category-choices></div>
         </div>
         <div class="field">
           <label>Practice</label>
@@ -335,18 +362,28 @@ document.querySelectorAll('[data-lang-role]').forEach((root) => {
 })
 
 document.querySelectorAll('[data-category-choices]').forEach((root) => {
-  root.innerHTML = categories
-    .map(
-      (category) => `
-        <button class="cat-chip" type="button" data-category="${category.id}">
-          <span class="cat-chip-emoji">${category.emoji}</span>
-          <span class="cat-chip-copy">
-            <span class="cat-chip-label">${category.short}</span>
-            <span class="cat-chip-count" data-learn-count></span>
-          </span>
-        </button>
-      `,
-    )
+  root.innerHTML = categoryGroups
+    .map((group) => {
+      const chips = categoriesInGroup(group.id)
+        .map(
+          (category) => `
+            <button class="cat-chip" type="button" data-category="${category.id}">
+              <span class="cat-chip-emoji">${category.emoji}</span>
+              <span class="cat-chip-copy">
+                <span class="cat-chip-label">${category.short}</span>
+                <span class="cat-chip-count" data-learn-count></span>
+              </span>
+            </button>
+          `,
+        )
+        .join('')
+      return `
+        <div class="cat-group">
+          <p class="cat-group-label">${group.label}</p>
+          <div class="cat-grid">${chips}</div>
+        </div>
+      `
+    })
     .join('')
 })
 
@@ -381,6 +418,9 @@ document.querySelectorAll('[data-category-choices]').forEach((root) => {
     const button = (event.target as HTMLElement).closest<HTMLButtonElement>('[data-category]')
     if (!button || !isCategoryId(button.dataset.category ?? '')) return
     settings.category = button.dataset.category as CategoryId
+    if (!categorySupportsQuiz(settings.category) && settings.mode !== 'learn') {
+      settings.mode = 'learn'
+    }
     refreshChrome()
   })
 })
@@ -389,7 +429,9 @@ document.querySelectorAll('[data-mode-choices]').forEach((root) => {
   root.addEventListener('click', (event) => {
     const button = (event.target as HTMLElement).closest<HTMLButtonElement>('[data-mode]')
     if (!button || !isModeId(button.dataset.mode ?? '')) return
-    settings.mode = button.dataset.mode as ModeId
+    const mode = button.dataset.mode as ModeId
+    if (mode !== 'learn' && !categorySupportsQuiz(settings.category)) return
+    settings.mode = mode
     refreshChrome()
   })
 })
@@ -406,6 +448,9 @@ qs('#learn-done-choice').addEventListener('click', () => {
 })
 qs('#learn-done-type').addEventListener('click', () => {
   void continueAsQuiz('type')
+})
+qs('#learn-done-blank').addEventListener('click', () => {
+  void continueAsQuiz('blank')
 })
 
 qs('#open-settings').addEventListener('click', () => {
@@ -496,7 +541,7 @@ function effectiveMode(): ModeId {
 }
 
 async function beginSession(): Promise<void> {
-  if (!settings.category || activePool().length === 0) return
+  if (!settings.category || activeCount() === 0) return
   unlockSpeech()
   void unlockSfx()
   settings.started = true
@@ -526,6 +571,7 @@ function goHome(): void {
   hideLearnDone()
   observer?.disconnect()
   feedWords = []
+  feedSheets = []
   feed.innerHTML = ''
   settings.started = false
   saveSettings()
@@ -546,17 +592,24 @@ function hideLearnDone(): void {
 function showLearnDone(): void {
   if (learnDoneShown || !settings.started || effectiveMode() !== 'learn') return
   const category = settings.category ? getCategory(settings.category) : null
+  const sheetCat = category?.kind === 'sheet'
   qs('#learn-done-kicker').textContent = category ? `${category.short} complete` : 'Category complete'
-  qs('#learn-done-sub').textContent = category
-    ? `${category.short} is done. Quiz these words, or go home to pick a new category.`
-    : 'Quiz these words, or go home to pick a new category.'
+  qs('#learn-done-sub').textContent = sheetCat
+    ? 'Cheat sheets done. Go home to pick another category.'
+    : category
+      ? `${category.short} is done. Quiz these words, or go home to pick a new category.`
+      : 'Quiz these words, or go home to pick a new category.'
+  qs<HTMLButtonElement>('#learn-done-choice').hidden = sheetCat
+  qs<HTMLButtonElement>('#learn-done-type').hidden = sheetCat
+  qs<HTMLButtonElement>('#learn-done-blank').hidden = sheetCat
   learnDoneShown = true
   learnDone.hidden = false
   playResult()
 }
 
 function scheduleLearnDone(index: number, generation: number): void {
-  if (index < feedWords.length - 1) return
+  const total = feedSheets.length || feedWords.length
+  if (index < total - 1) return
   window.setTimeout(() => {
     if (generation !== learnSpokenGen) return
     if (activeIndex !== index || effectiveMode() !== 'learn') return
@@ -565,6 +618,7 @@ function scheduleLearnDone(index: number, generation: number): void {
 }
 
 async function continueAsQuiz(mode: ModeId): Promise<void> {
+  if (!categorySupportsQuiz(settings.category)) return
   hideLearnDone()
   settings.mode = mode
   await beginSession()
@@ -610,16 +664,47 @@ function renderFeed(startId?: string): void {
   learnGeneration += 1
   learnDoneShown = false
   hideLearnDone()
+  feedKey = currentFeedKey()
+  window.clearTimeout(swipeSoundTimer)
+
+  if (isSheetCategory(settings.category)) {
+    feedWords = []
+    feedSheets = sheetsInCategory(settings.category)
+    const startIndex = Math.max(
+      0,
+      startId ? feedSheets.findIndex((item) => item.id === startId) : 0,
+    )
+    activeIndex = startIndex === -1 ? 0 : startIndex
+    swipeSoundIndex = activeIndex
+
+    if (!feedSheets.length) {
+      feed.innerHTML = `
+        <article class="card empty-card">
+          <p class="learn">No sheets here</p>
+          <p class="native">Pick another category to keep going.</p>
+        </article>
+      `
+      refreshChrome()
+      return
+    }
+
+    feed.innerHTML = feedSheets.map((sheet, index) => sheetCardMarkup(sheet, index)).join('')
+    bindSheetFeed()
+    feed.querySelector<HTMLElement>(`[data-index="${activeIndex}"]`)?.classList.add('is-active')
+    feed.querySelector<HTMLElement>(`[data-index="${activeIndex}"]`)?.scrollIntoView()
+    refreshChrome()
+    return
+  }
+
+  feedSheets = []
   const pool = activePool()
   feedWords = effectiveMode() === 'learn' ? pool : shuffled(pool)
-  feedKey = currentFeedKey()
   const startIndex = Math.max(
     0,
     startId ? feedWords.findIndex((item) => item.id === startId) : 0,
   )
   activeIndex = startIndex === -1 ? 0 : startIndex
   swipeSoundIndex = activeIndex
-  window.clearTimeout(swipeSoundTimer)
 
   if (!feedWords.length) {
     feed.innerHTML = `
@@ -730,11 +815,88 @@ function bindFeed(): void {
   feed.querySelectorAll('.card').forEach((card) => observer?.observe(card))
 }
 
+function sheetCardMarkup(sheet: ConjugationSheet, index: number): string {
+  const title = settings.learning === 'pl' ? sheet.titlePl : sheet.titleEn
+  const subtitle = settings.learning === 'pl' ? sheet.titleEn : sheet.titlePl
+  const tense = settings.native === 'pl' ? sheet.tensePl : sheet.tenseEn
+  const rows = sheet.rows
+    .map(
+      (row) => `
+        <button class="sheet-row" type="button" data-form="${escapeHtml(row.form)}" aria-label="Hear ${escapeHtml(row.form)}">
+          <span class="sheet-person">${escapeHtml(row.label)}</span>
+          <span class="sheet-form">${escapeHtml(row.form)}</span>
+          <span class="sheet-gloss">${escapeHtml(row.gloss)}</span>
+        </button>
+      `,
+    )
+    .join('')
+
+  return `
+    <article class="card card-sheet" data-index="${index}" data-sheet="${sheet.id}" style="background:${getCategory(sheet.category).tint}">
+      <p class="sheet-kicker">${escapeHtml(tense)} · cheat sheet</p>
+      <p class="emoji sheet-emoji">${sheet.emoji}</p>
+      <p class="learn sheet-title">${escapeHtml(title)}</p>
+      <p class="native sheet-subtitle">${escapeHtml(subtitle)}</p>
+      <div class="sheet-table">${rows}</div>
+      <p class="hint">Tap a form to hear it · swipe up</p>
+    </article>
+  `
+}
+
+function bindSheetFeed(): void {
+  feed.querySelectorAll<HTMLElement>('.sheet-row').forEach((row) => {
+    row.addEventListener('click', (event) => {
+      event.stopPropagation()
+      unlockSpeech()
+      const form = row.dataset.form
+      if (!form) return
+      feed.querySelectorAll('.sheet-row').forEach((item) => item.classList.remove('is-speaking'))
+      row.classList.add('is-speaking')
+      window.setTimeout(() => row.classList.remove('is-speaking'), 900)
+      const polish = getLanguage('pl')
+      speak(form, polish.bcp47, polish.voiceLangs)
+    })
+  })
+
+  observer = new IntersectionObserver(
+    (entries) => {
+      const visible = entries
+        .filter((entry) => entry.isIntersecting)
+        .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0]
+
+      if (!visible?.target) return
+
+      const index = Number((visible.target as HTMLElement).dataset.index)
+      if (Number.isNaN(index)) return
+
+      feed.querySelectorAll('.card').forEach((card) => card.classList.remove('is-active'))
+      visible.target.classList.add('is-active')
+
+      if (index === activeIndex) return
+
+      activeIndex = index
+      refreshChrome()
+      stopSpeech()
+      if (settings.started && index >= feedSheets.length - 1) {
+        scheduleLearnDone(index, ++learnSpokenGen)
+      }
+    },
+    { root: feed, threshold: 0.72 },
+  )
+
+  feed.querySelectorAll('.card').forEach((card) => observer?.observe(card))
+
+  if (settings.started && activeIndex >= feedSheets.length - 1) {
+    scheduleLearnDone(activeIndex, ++learnSpokenGen)
+  }
+}
+
 function cardMarkup(word: Word, index: number, pool: Word[]): string {
   const answer = escapeHtml(word.forms[settings.learning])
   const native = escapeHtml(word.forms[settings.native])
   const mode = effectiveMode()
   const quiz = mode !== 'learn'
+  const blank = mode === 'blank' ? blankPromptFor(word, index) : null
   const hint =
     mode === 'learn'
       ? settings.sounds.reveal
@@ -742,11 +904,11 @@ function cardMarkup(word: Word, index: number, pool: Word[]): string {
         : 'Tap emoji to replay · swipe up'
       : mode === 'choice'
         ? 'Pick the word'
-        : 'Type the word · accents optional'
+        : mode === 'blank'
+          ? 'Pick the missing word'
+          : 'Type the word · accents optional'
 
-  const quizUi =
-    mode === 'choice'
-      ? `<div class="quiz-options">
+  const choiceUi = `<div class="quiz-options">
           ${choiceWords(word, pool)
             .map(
               (option) =>
@@ -754,14 +916,31 @@ function cardMarkup(word: Word, index: number, pool: Word[]): string {
             )
             .join('')}
         </div>`
-      : mode === 'type'
-        ? `<form class="type-form">
+
+  const typeUi = `<form class="type-form">
             <input class="type-input" type="text" enterkeyhint="done" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" aria-label="Type the word" />
             <button type="submit">Check</button>
             <p class="type-hint">Accents are optional</p>
           </form>
           <p class="type-feedback"></p>`
-        : ''
+
+  const quizUi =
+    mode === 'choice' || mode === 'blank' ? choiceUi : mode === 'type' ? typeUi : ''
+
+  if (mode === 'blank' && blank) {
+    return `
+    <article class="card card-quiz card-blank" data-index="${index}" data-answer="${answer}" data-blank-form="${escapeHtml(blank.answer)}" data-speak="${escapeHtml(blank.speak)}" style="background:${word.tint}">
+      <button class="emoji-hit" type="button" aria-label="Word prompt">
+        <span class="emoji">${word.emoji}</span>
+      </button>
+      <p class="blank-sentence" data-blank-sentence>${blank.displayHtml}</p>
+      <p class="blank-gloss" data-blank-gloss>${escapeHtml(blank.gloss)}</p>
+      <p class="learn" data-learn hidden></p>
+      ${quizUi}
+      <p class="hint">${hint}</p>
+    </article>
+  `
+  }
 
   const prompt = quiz
     ? `<p class="native" data-native>${native}</p>
@@ -775,14 +954,15 @@ function cardMarkup(word: Word, index: number, pool: Word[]): string {
            <span class="emoji">${word.emoji}</span>
          </button>
          <p class="learn is-blurred" data-learn aria-hidden="true">${highlightLearnWord(word.forms[settings.learning])}</p>
+         <p class="native learn-gloss" data-native hidden>${native}</p>
          <div class="examples" data-examples></div>`
       : `<button class="emoji-hit" type="button" aria-label="Replay pronunciation">
            ${revealRingMarkup()}
            <span class="emoji">${word.emoji}</span>
          </button>
          <p class="learn" data-learn>${highlightLearnWord(word.forms[settings.learning])}</p>
-         <div class="examples" data-examples></div>
-         <p class="native" data-native>${native}</p>`
+         <p class="native learn-gloss" data-native>${native}</p>
+         <div class="examples" data-examples></div>`
 
   if (quiz) {
     return `
@@ -803,6 +983,77 @@ function cardMarkup(word: Word, index: number, pool: Word[]): string {
       <p class="hint">${hint}</p>
     </article>
   `
+}
+
+type BlankPrompt = {
+  answer: string
+  speak: string
+  gloss: string
+  displayHtml: string
+}
+
+function blankPromptFor(word: Word, index: number): BlankPrompt {
+  const learning = word.forms[settings.learning]
+  const useLearningPl = settings.learning === 'pl'
+  const examples = word.examples.length
+    ? shuffled(word.examples)
+    : [{ pl: learning, en: word.forms.en }]
+
+  for (const example of examples) {
+    const sentence = useLearningPl ? example.pl : example.en
+    const gloss = useLearningPl ? example.en : example.pl
+    const hit = findTermInSentence(sentence, learning)
+    if (!hit) continue
+    const before = escapeHtml(sentence.slice(0, hit.start))
+    const after = escapeHtml(sentence.slice(hit.end))
+    const matched = hit.matched
+    return {
+      answer: matched,
+      speak: sentence,
+      gloss,
+      displayHtml: `${before}<span class="blank-slot">____</span>${after}`,
+    }
+  }
+
+  const gloss = word.forms[settings.native]
+  const seed = word.examples[index % Math.max(word.examples.length, 1)]
+  return {
+    answer: learning,
+    speak: learning,
+    gloss: seed ? (useLearningPl ? seed.en : seed.pl) : gloss,
+    displayHtml: `<span class="blank-slot">____</span>`,
+  }
+}
+
+function findTermInSentence(
+  sentence: string,
+  term: string,
+): { start: number; end: number; matched: string } | null {
+  const trimmed = term.normalize('NFC').trim()
+  if (!trimmed || !sentence) return null
+
+  const letter = '[A-Za-zÀ-žĄąĆćĘęŁłŃńÓóŚśŹźŻż]'
+  const stems = stemsFor(trimmed)
+    .filter((stem) => stem.length >= Math.min(3, trimmed.length))
+    .sort((a, b) => b.length - a.length)
+  const patterns = stems.length ? stems : [trimmed.toLowerCase()]
+
+  const body = patterns
+    .map((stem) => {
+      if (stem.includes(' ')) return escapeRegex(stem).replaceAll('\\ ', '\\s+')
+      if (stem.length <= 2) return escapeRegex(stem)
+      return `${escapeRegex(stem)}${letter}*`
+    })
+    .join('|')
+
+  const pattern = new RegExp(`(?<!${letter})(?:${body})(?!${letter})`, 'gi')
+  const match = pattern.exec(sentence)
+  if (!match?.[0]) return null
+  return {
+    start: match.index,
+    end: match.index + match[0].length,
+    matched: match[0],
+  }
 }
 
 function choiceWords(word: Word, pool: Word[]): string[] {
@@ -842,6 +1093,15 @@ function gradeCard(card: HTMLElement, given: string): void {
     learn.textContent = expected
   }
 
+  const blankSentence = card.querySelector<HTMLElement>('[data-blank-sentence]')
+  if (blankSentence) {
+    const filled = card.dataset.blankForm || expected
+    blankSentence.innerHTML = blankSentence.innerHTML.replace(
+      /<span class="blank-slot">____<\/span>/,
+      `<span class="word-hit">${escapeHtml(filled)}</span>`,
+    )
+  }
+
   const hint = card.querySelector('.hint')
   if (hint) hint.textContent = correct ? 'Nice · swipe up' : 'Swipe up for the next word'
 
@@ -866,7 +1126,15 @@ function gradeCard(card: HTMLElement, given: string): void {
     feedback.textContent = correct ? 'Correct' : `It’s ${expected}`
   }
 
-  window.setTimeout(() => speakWord(index, true), correct ? 320 : 180)
+  const spoken = card.dataset.speak || expected
+  window.setTimeout(() => {
+    if (effectiveMode() === 'blank' && spoken) {
+      const learning = getLanguage(settings.learning)
+      speak(spoken, learning.bcp47, learning.voiceLangs)
+      return
+    }
+    speakWord(index, true)
+  }, correct ? 320 : 180)
   refreshChrome()
   const last = index >= feedWords.length - 1
   if (last) {
@@ -1306,9 +1574,11 @@ function showExample(index: number, step: number): void {
     item.type = 'button'
     item.className = 'example'
     item.setAttribute('aria-label', 'Replay sentence')
-    item.innerHTML = `<p class="example-pl">${highlightTerms(example.pl, [word.forms[settings.learning]])}</p><p class="example-en">${highlightTerms(example.en, [word.forms[settings.learning]])}</p>`
+    item.innerHTML = `<p class="example-pl">${highlightTerms(example.pl, [word.forms[settings.learning]])}</p><p class="example-en" hidden>${highlightTerms(example.en, [word.forms[settings.learning]])}</p>`
     item.addEventListener('click', (event) => {
       event.stopPropagation()
+      const gloss = item.querySelector<HTMLElement>('.example-en')
+      if (gloss) gloss.hidden = false
       replayExample(item, example.pl)
     })
     box.append(item)
@@ -1400,10 +1670,15 @@ function showPayoffAnswer(index: number): void {
 
   const learn = card.querySelector<HTMLElement>('[data-learn]')
   const answer = word.forms[settings.learning]
+  const gloss = card.querySelector<HTMLElement>('[data-native]')
   if (learn) {
     learn.classList.remove('is-blurred')
     learn.removeAttribute('aria-hidden')
     showLearnCheckmark(learn, answer)
+  }
+  if (gloss) {
+    gloss.hidden = false
+    gloss.textContent = word.forms[settings.native]
   }
   setLearnBeat(card, 'payoff')
 
@@ -1422,12 +1697,17 @@ function completeRecall(index: number, offerGen: number): void {
 
   const learn = card.querySelector<HTMLElement>('[data-learn]')
   const hook = card.querySelector<HTMLElement>('[data-hook]')
+  const gloss = card.querySelector<HTMLElement>('[data-native]')
   const answer = word.forms[settings.learning]
 
   if (learn) {
     learn.classList.remove('is-blurred')
     learn.removeAttribute('aria-hidden')
     showLearnCheckmark(learn, answer)
+  }
+  if (gloss) {
+    gloss.hidden = false
+    gloss.textContent = word.forms[settings.native]
   }
   if (hook) {
     hook.hidden = true
@@ -1436,7 +1716,7 @@ function completeRecall(index: number, offerGen: number): void {
   payoffStep = 'done'
   examplesDone = true
   const hint = card.querySelector('.hint')
-  if (hint) hint.textContent = 'Read the sentences · swipe up'
+  if (hint) hint.textContent = 'Tap sentences for English · swipe up'
   scheduleLearnDone(index, offerGen)
 }
 
@@ -1520,7 +1800,11 @@ function refreshWords(): void {
     if (!word) return
     const learn = card.querySelector('[data-learn]')
     const hook = card.querySelector<HTMLElement>('[data-hook]')
-    if (learn) learn.innerHTML = highlightLearnWord(word.forms[settings.learning])
+    const gloss = card.querySelector<HTMLElement>('[data-native]')
+    if (learn && payoffStep !== 'done' && payoffStep !== 'answer') {
+      learn.innerHTML = highlightLearnWord(word.forms[settings.learning])
+    }
+    if (gloss) gloss.textContent = word.forms[settings.native]
     if (hook) {
       hook.hidden = !settings.sounds.ask
       hook.textContent = hookLine(index, word.forms[settings.native])
@@ -1533,12 +1817,11 @@ function refreshChrome(): void {
   const learning = getLanguage(settings.learning)
   langLabel.textContent = `${learning.nativeName} → ${native.label}`
 
-  const pool = activePool()
-  const count = pool.length
+  const count = activeCount()
   const category = settings.category ? getCategory(settings.category) : null
   const score = feed.querySelectorAll('.card.is-correct').length
   progress.textContent = category
-    ? effectiveMode() === 'learn'
+    ? effectiveMode() === 'learn' || category.kind === 'sheet'
       ? `${category.emoji} ${count ? Math.min(activeIndex + 1, count) : 0} / ${count}`
       : `${category.emoji} ${count ? Math.min(activeIndex + 1, count) : 0} / ${count} · ${score}✓`
     : '—'
@@ -1548,9 +1831,11 @@ function refreshChrome(): void {
     ? 'Choose a category'
     : count === 0
       ? 'No words here'
-      : settings.mode === 'learn'
-        ? 'Start scrolling'
-        : 'Start quiz'
+      : category?.kind === 'sheet'
+        ? 'Open cheat sheets'
+        : settings.mode === 'learn'
+          ? 'Start scrolling'
+          : 'Start quiz'
 
   document.querySelectorAll('[data-lang-role]').forEach((root) => {
     const role = (root as HTMLElement).dataset.langRole
@@ -1565,12 +1850,20 @@ function refreshChrome(): void {
     choice.setAttribute('aria-pressed', String(id === settings.category))
     const countEl = choice.querySelector('[data-learn-count]')
     if (id && isCategoryId(id) && countEl) {
-      countEl.textContent = `${wordsInCategory(id).length}`
+      countEl.textContent = isSheetCategory(id)
+        ? `${sheetsInCategory(id).length}`
+        : `${wordsInCategory(id).length}`
     }
   })
 
+  const quizOk = categorySupportsQuiz(settings.category)
   document.querySelectorAll('[data-mode]').forEach((choice) => {
-    choice.setAttribute('aria-pressed', String((choice as HTMLElement).dataset.mode === settings.mode))
+    const mode = (choice as HTMLElement).dataset.mode as ModeId | undefined
+    const pressed = mode === settings.mode
+    choice.setAttribute('aria-pressed', String(pressed))
+    if (choice instanceof HTMLButtonElement) {
+      choice.disabled = Boolean(mode && mode !== 'learn' && !quizOk)
+    }
   })
 
   refreshSoundSheet()

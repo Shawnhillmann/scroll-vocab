@@ -1531,6 +1531,21 @@ const EXAMPLES: Record<string, Example[]> = {
     x('Pogoda jest zła.', 'The weather is bad.'),
     x('Czuję się źle, to zły dzień.', 'I feel unwell; it is a bad day.'),
   ],
+  bored: [
+    x('Jestem znudzony w domu.', 'I am bored at home.'),
+    x('Ten wykład mnie nudzi — jestem znudzony.', 'This lecture bores me — I am bored.'),
+    x('Dzieci są znudzone.', 'The children are bored.'),
+  ],
+  calm: [
+    x('On jest spokojny.', 'He is calm.'),
+    x('Morze jest spokojne.', 'The sea is calm.'),
+    x('Zachowaj spokojny głos.', 'Keep a calm voice.'),
+  ],
+  proud: [
+    x('Jestem dumny z ciebie.', 'I am proud of you.'),
+    x('Ona jest dumna z pracy.', 'She is proud of the work.'),
+    x('To dumny moment.', 'This is a proud moment.'),
+  ],
   hot: [
     x('Herbata jest gorąca.', 'The tea is hot.'),
     x('Dziś jest gorący dzień.', 'Today is a hot day.'),
@@ -1605,6 +1620,936 @@ const EXAMPLES: Record<string, Example[]> = {
     x('Jestem dziś wolny.', 'I am free today.'),
     x('Ten wieczór jest wolny.', 'This evening is free.'),
     x('Czuję się wolny w parku.', 'I feel free in the park.'),
+  ],
+  sit: [
+    x('Proszę, usiądź tutaj.', 'Please sit here.'),
+    x('Siedzę przy stole.', 'I sit at the table.'),
+    x('Kot lubi siedzieć na oknie.', 'The cat likes to sit on the window.'),
+  ],
+  cook: [
+    x('Lubię gotować zupę.', 'I like to cook soup.'),
+    x('Gotuję obiad teraz.', 'I am cooking lunch now.'),
+    x('On umie dobrze gotować.', 'He can cook well.'),
+  ],
+  open: [
+    x('Otwieram drzwi.', 'I open the door.'),
+    x('Proszę otworzyć okno.', 'Please open the window.'),
+    x('Sklep otwiera się o dziewiątej.', 'The shop opens at nine.'),
+  ],
+  close: [
+    x('Zamykam drzwi.', 'I close the door.'),
+    x('Zamknij okno, jest zimno.', 'Close the window; it is cold.'),
+    x('Sklep zamyka się wieczorem.', 'The shop closes in the evening.'),
+  ],
+  wait: [
+    x('Czekam na autobus.', 'I am waiting for the bus.'),
+    x('Proszę chwilę poczekać.', 'Please wait a moment.'),
+    x('Czekamy na ciebie.', 'We are waiting for you.'),
+  ],
+  understand: [
+    x('Rozumiem to zdanie.', 'I understand this sentence.'),
+    x('Czy rozumiesz po polsku?', 'Do you understand Polish?'),
+    x('Nie rozumiem tego słowa.', 'I do not understand this word.'),
+  ],
+  drive: [
+    x('Jadę do pracy.', 'I am driving to work.'),
+    x('Lubię jechać pociągiem.', 'I like to go by train.'),
+    x('Jedziemy do Krakowa.', 'We are going to Krakow.'),
+  ],
+  swim: [
+    x('Pływam w jeziorze.', 'I swim in the lake.'),
+    x('Dzieci lubią pływać.', 'Children like to swim.'),
+    x('Uczę się pływać.', 'I am learning to swim.'),
+  ],
+  fly: [
+    x('Ptaki latają wysoko.', 'Birds fly high.'),
+    x('Jutro lecę do Gdańska.', 'Tomorrow I fly to Gdansk.'),
+    x('Samolot lata nad miastem.', 'The plane flies over the city.'),
+  ],
+  jump: [
+    x('Dziecko skacze z radości.', 'The child jumps with joy.'),
+    x('Skaczę przez kałużę.', 'I jump over the puddle.'),
+    x('Kot skacze na kanapę.', 'The cat jumps onto the sofa.'),
+  ],
+  dance: [
+    x('Lubię tańczyć.', 'I like to dance.'),
+    x('Tańczymy na weselu.', 'We dance at the wedding.'),
+    x('Ona pięknie tańczy.', 'She dances beautifully.'),
+  ],
+  'lie-down': [
+    x('Leżę na kanapie.', 'I lie on the sofa.'),
+    x('Pies lubi leżeć w słońcu.', 'The dog likes to lie in the sun.'),
+    x('Po pracy chcę leżeć.', 'After work I want to lie down.'),
+  ],
+  climb: [
+    x('Wspinamy się na górę.', 'We climb the mountain.'),
+    x('Kot wspina się na drzewo.', 'The cat climbs the tree.'),
+    x('Lubię się wspinać.', 'I like to climb.'),
+  ],
+  fall: [
+    x('Uważaj, możesz upaść.', 'Be careful, you might fall.'),
+    x('Liście upadają jesienią.', 'Leaves fall in autumn.'),
+    x('Upadłem na schodach.', 'I fell on the stairs.'),
+  ],
+  carry: [
+    x('Niosę torbę.', 'I carry a bag.'),
+    x('On nosi dziecko na rękach.', 'He carries the child in his arms.'),
+    x('Możesz mi pomóc nieść to?', 'Can you help me carry this?'),
+  ],
+  pull: [
+    x('Ciągnę drzwi do siebie.', 'I pull the door toward me.'),
+    x('Pies ciągnie smycz.', 'The dog pulls the leash.'),
+    x('Nie ciągnij tak mocno.', 'Do not pull so hard.'),
+  ],
+  push: [
+    x('Pcham wózek.', 'I push the cart.'),
+    x('Proszę pchnąć drzwi.', 'Please push the door.'),
+    x('Nie pchaj mnie.', 'Do not push me.'),
+  ],
+  throw: [
+    x('Rzucam piłkę.', 'I throw the ball.'),
+    x('Nie rzucaj śmieci na ziemię.', 'Do not throw trash on the ground.'),
+    x('On rzuca kamień do wody.', 'He throws a stone into the water.'),
+  ],
+  catch: [
+    x('Łapię piłkę.', 'I catch the ball.'),
+    x('Kot łapie mysz.', 'The cat catches a mouse.'),
+    x('Spróbuj złapać klucz.', 'Try to catch the key.'),
+  ],
+  ride: [
+    x('Jeżdżę na rowerze.', 'I ride a bike.'),
+    x('Lubię jeździć konno.', 'I like to ride a horse.'),
+    x('Dzieci jeżdżą na hulajnodze.', 'The children ride a scooter.'),
+  ],
+  enter: [
+    x('Wchodzę do domu.', 'I enter the house.'),
+    x('Proszę wejść.', 'Please come in.'),
+    x('Wchodzimy do sklepu.', 'We enter the shop.'),
+  ],
+  like: [
+    x('Lubię kawę.', 'I like coffee.'),
+    x('Ona lubi czytać.', 'She likes to read.'),
+    x('Lubimy ten film.', 'We like this movie.'),
+  ],
+  'love-verb': [
+    x('Kocham cię.', 'I love you.'),
+    x('Oni kochają muzykę.', 'They love music.'),
+    x('Kocham ten kraj.', 'I love this country.'),
+  ],
+  hate: [
+    x('Nienawidzę kłamstw.', 'I hate lies.'),
+    x('Ona nienawidzi zimy.', 'She hates winter.'),
+    x('Nie nienawidzę go.', 'I do not hate him.'),
+  ],
+  remember: [
+    x('Pamiętam twoje imię.', 'I remember your name.'),
+    x('Czy pamiętasz tę ulicę?', 'Do you remember this street?'),
+    x('Muszę pamiętać o kluczu.', 'I must remember the key.'),
+  ],
+  forget: [
+    x('Zapominam o godzinie.', 'I forget the time.'),
+    x('Nie zapomnij biletu.', 'Do not forget the ticket.'),
+    x('Często zapominam hasła.', 'I often forget passwords.'),
+  ],
+  meet: [
+    x('Spotykam przyjaciela.', 'I meet a friend.'),
+    x('Spotkamy się jutro.', 'We will meet tomorrow.'),
+    x('Miło cię spotkać.', 'Nice to meet you.'),
+  ],
+  visit: [
+    x('Odwiedzam babcię.', 'I visit grandma.'),
+    x('Chcemy odwiedzić Kraków.', 'We want to visit Krakow.'),
+    x('Odwiedzają nas co tydzień.', 'They visit us every week.'),
+  ],
+  invite: [
+    x('Zapraszam cię na kawę.', 'I invite you for coffee.'),
+    x('Oni zapraszają nas na obiad.', 'They invite us to lunch.'),
+    x('Dziękuję za zaproszenie.', 'Thank you for the invitation.'),
+  ],
+  thank: [
+    x('Dziękuję za pomoc.', 'Thank you for the help.'),
+    x('Chcę ci podziękować.', 'I want to thank you.'),
+    x('Dziękujemy za wszystko.', 'We thank you for everything.'),
+  ],
+  apologize: [
+    x('Przepraszam za spóźnienie.', 'I apologize for being late.'),
+    x('Chcę przeprosić.', 'I want to apologize.'),
+    x('On przeprasza za błąd.', 'He apologizes for the mistake.'),
+  ],
+  promise: [
+    x('Obiecuję wrócić wcześnie.', 'I promise to come back early.'),
+    x('Czy możesz obiecać?', 'Can you promise?'),
+    x('Obiecują pomóc.', 'They promise to help.'),
+  ],
+  decide: [
+    x('Decyduję teraz.', 'I decide now.'),
+    x('Musimy zdecydować dziś.', 'We must decide today.'),
+    x('Ona dobrze decyduje.', 'She decides well.'),
+  ],
+  choose: [
+    x('Wybieram tę książkę.', 'I choose this book.'),
+    x('Możesz wybrać kolor.', 'You can choose a color.'),
+    x('Wybieramy restaurację.', 'We choose a restaurant.'),
+  ],
+  hope: [
+    x('Mam nadzieję na pogodę.', 'I hope for good weather.'),
+    x('Mamy nadzieję zobaczyć cię.', 'We hope to see you.'),
+    x('Mam nadzieję, że rozumiesz.', 'I hope you understand.'),
+  ],
+  believe: [
+    x('Wierzę ci.', 'I believe you.'),
+    x('Czy wierzysz w to?', 'Do you believe that?'),
+    x('Wierzymy w ciebie.', 'We believe in you.'),
+  ],
+  clean: [
+    x('Sprzątam pokój.', 'I clean the room.'),
+    x('Musimy posprzątać kuchnię.', 'We must clean the kitchen.'),
+    x('Ona sprząta co tydzień.', 'She cleans every week.'),
+  ],
+  'wash-clothes': [
+    x('Pierę ubrania.', 'I wash clothes.'),
+    x('Dziś trzeba prać.', 'Today we need to do laundry.'),
+    x('Ona pierze ręczniki.', 'She washes the towels.'),
+  ],
+  iron: [
+    x('Prasuję koszulę.', 'I iron a shirt.'),
+    x('Czy możesz prasować?', 'Can you iron?'),
+    x('Nie lubię prasować.', 'I do not like to iron.'),
+  ],
+  'do-dishes': [
+    x('Zmywam naczynia.', 'I do the dishes.'),
+    x('Kto zmywa dziś?', 'Who does the dishes today?'),
+    x('Zmywamy po obiedzie.', 'We do the dishes after lunch.'),
+  ],
+  'wake-up': [
+    x('Budzę się wcześnie.', 'I wake up early.'),
+    x('Budzik budzi mnie o siódmej.', 'The alarm wakes me at seven.'),
+    x('Trudno się budzić zimą.', 'It is hard to wake up in winter.'),
+  ],
+  'get-up': [
+    x('Wstaję o szóstej.', 'I get up at six.'),
+    x('Wstań, jest późno.', 'Get up; it is late.'),
+    x('Wstajemy razem.', 'We get up together.'),
+  ],
+  'get-dressed': [
+    x('Ubiorę się szybko.', 'I will get dressed quickly.'),
+    x('Dziecko ubiera się samo.', 'The child gets dressed alone.'),
+    x('Ubieram się do pracy.', 'I get dressed for work.'),
+  ],
+  undress: [
+    x('Rozbieram się przed snem.', 'I undress before sleep.'),
+    x('Rozbierz mokre ubranie.', 'Take off the wet clothes.'),
+    x('Dziecko nie chce się rozebrać.', 'The child does not want to undress.'),
+  ],
+  bathe: [
+    x('Kąpię się wieczorem.', 'I bathe in the evening.'),
+    x('Kąpiemy psa.', 'We bathe the dog.'),
+    x('Lubię się kąpać.', 'I like to bathe.'),
+  ],
+  rest: [
+    x('Odpoczywam po pracy.', 'I rest after work.'),
+    x('Musisz odpocząć.', 'You must rest.'),
+    x('Odpoczywamy w parku.', 'We rest in the park.'),
+  ],
+  'make-bed': [
+    x('Ścielę łóżko rano.', 'I make the bed in the morning.'),
+    x('Proszę pościelić łóżko.', 'Please make the bed.'),
+    x('Ona ładnie ściele łóżko.', 'She makes the bed neatly.'),
+  ],
+  'take-out-trash': [
+    x('Wyrzucam śmieci.', 'I take out the trash.'),
+    x('Kto wyrzuca śmieci?', 'Who takes out the trash?'),
+    x('Wyrzucamy śmieci wieczorem.', 'We take out the trash in the evening.'),
+  ],
+  'water-plants': [
+    x('Podlewam kwiaty.', 'I water the plants.'),
+    x('Trzeba podlać rośliny.', 'The plants need watering.'),
+    x('Podlewamy ogród.', 'We water the garden.'),
+  ],
+  vacuum: [
+    x('Odkurzam dywan.', 'I vacuum the carpet.'),
+    x('Dziś odkurzamy dom.', 'Today we vacuum the house.'),
+    x('On odkurza co tydzień.', 'He vacuums every week.'),
+  ],
+  'go-shopping': [
+    x('Robię zakupy w sobotę.', 'I shop on Saturday.'),
+    x('Idziemy robić zakupy.', 'We are going shopping.'),
+    x('Lubię robić zakupy lokalnie.', 'I like to shop locally.'),
+  ],
+  red: [
+    x('To jest czerwony samochód.', 'This is a red car.'),
+    x('Lubię czerwone jabłka.', 'I like red apples.'),
+    x('Jej torba jest czerwona.', 'Her bag is red.'),
+  ],
+  blue: [
+    x('Niebo jest niebieskie.', 'The sky is blue.'),
+    x('Mam niebieskie oczy.', 'I have blue eyes.'),
+    x('To niebieski sweter.', 'This is a blue sweater.'),
+  ],
+  green: [
+    x('Trawa jest zielona.', 'The grass is green.'),
+    x('Lubię zieloną herbatę.', 'I like green tea.'),
+    x('To zielony autobus.', 'This is a green bus.'),
+  ],
+  yellow: [
+    x('Banana jest żółta.', 'The banana is yellow.'),
+    x('Słońce jest żółte.', 'The sun is yellow.'),
+    x('Mam żółty długopis.', 'I have a yellow pen.'),
+  ],
+  black: [
+    x('Kot jest czarny.', 'The cat is black.'),
+    x('Nosi czarne buty.', 'He wears black shoes.'),
+    x('To czarny parasol.', 'This is a black umbrella.'),
+  ],
+  white: [
+    x('Śnieg jest biały.', 'The snow is white.'),
+    x('Mam białą koszulę.', 'I have a white shirt.'),
+    x('Ściany są białe.', 'The walls are white.'),
+  ],
+  'orange-adj': [
+    x('To pomarańczowy samochód.', 'This is an orange car.'),
+    x('Liście są pomarańczowe.', 'The leaves are orange.'),
+    x('Mam pomarańczową torbę.', 'I have an orange bag.'),
+  ],
+  pink: [
+    x('Kwiaty są różowe.', 'The flowers are pink.'),
+    x('Lubię różowy kolor.', 'I like the color pink.'),
+    x('To różowa bluzka.', 'This is a pink blouse.'),
+  ],
+  purple: [
+    x('Winogrona są fioletowe.', 'The grapes are purple.'),
+    x('Mam fioletowy szalik.', 'I have a purple scarf.'),
+    x('To fioletowy kwiat.', 'This is a purple flower.'),
+  ],
+  brown: [
+    x('Pies jest brązowy.', 'The dog is brown.'),
+    x('Lubię brązowe buty.', 'I like brown shoes.'),
+    x('Stół jest brązowy.', 'The table is brown.'),
+  ],
+  gray: [
+    x('Niebo jest szare.', 'The sky is gray.'),
+    x('Mam szary płaszcz.', 'I have a gray coat.'),
+    x('To szary kot.', 'This is a gray cat.'),
+  ],
+  gold: [
+    x('Pierścionek jest złoty.', 'The ring is gold.'),
+    x('Lubię złoty kolor.', 'I like the gold color.'),
+    x('To złoty medal.', 'This is a gold medal.'),
+  ],
+  silver: [
+    x('Zegarek jest srebrny.', 'The watch is silver.'),
+    x('Lubię srebrne kolczyki.', 'I like silver earrings.'),
+    x('To srebrny łańcuszek.', 'This is a silver chain.'),
+  ],
+  beige: [
+    x('Kanapa jest beżowa.', 'The sofa is beige.'),
+    x('Mam beżowy sweter.', 'I have a beige sweater.'),
+    x('Ściany są beżowe.', 'The walls are beige.'),
+  ],
+  navy: [
+    x('Marynarka jest granatowa.', 'The blazer is navy.'),
+    x('Lubię granatowy kolor.', 'I like navy.'),
+    x('To granatowe spodnie.', 'These are navy pants.'),
+  ],
+  big: [
+    x('To duży dom.', 'This is a big house.'),
+    x('Mam dużego psa.', 'I have a big dog.'),
+    x('Miasto jest duże.', 'The city is big.'),
+  ],
+  small: [
+    x('To mały pokój.', 'This is a small room.'),
+    x('Mam małą torbę.', 'I have a small bag.'),
+    x('Kot jest mały.', 'The cat is small.'),
+  ],
+  tall: [
+    x('On jest wysoki.', 'He is tall.'),
+    x('To wysoki budynek.', 'This is a tall building.'),
+    x('Drzewo jest wysokie.', 'The tree is tall.'),
+  ],
+  short: [
+    x('Ona jest niska.', 'She is short.'),
+    x('To niski płot.', 'This is a short fence.'),
+    x('Stół jest niski.', 'The table is low/short.'),
+  ],
+  young: [
+    x('On jest młody.', 'He is young.'),
+    x('To młody nauczyciel.', 'This is a young teacher.'),
+    x('Jesteśmy jeszcze młodzi.', 'We are still young.'),
+  ],
+  beautiful: [
+    x('To piękny widok.', 'This is a beautiful view.'),
+    x('Ona jest piękna.', 'She is beautiful.'),
+    x('Piękny dzień dziś.', 'It is a beautiful day today.'),
+  ],
+  ugly: [
+    x('Ten budynek jest brzydki.', 'This building is ugly.'),
+    x('To brzydka pogoda.', 'This is ugly weather.'),
+    x('Nie mów, że jest brzydki.', 'Do not say it is ugly.'),
+  ],
+  'clean-adj': [
+    x('Pokój jest czysty.', 'The room is clean.'),
+    x('Mam czyste ręce.', 'I have clean hands.'),
+    x('Ulica jest czysta.', 'The street is clean.'),
+  ],
+  dirty: [
+    x('Buty są brudne.', 'The shoes are dirty.'),
+    x('To brudne okno.', 'This is a dirty window.'),
+    x('Ręce są brudne.', 'The hands are dirty.'),
+  ],
+  rich: [
+    x('On jest bogaty.', 'He is rich.'),
+    x('To bogata rodzina.', 'This is a rich family.'),
+    x('Miasto wygląda bogato.', 'The city looks rich.'),
+  ],
+  poor: [
+    x('To biedna dzielnica.', 'This is a poor neighborhood.'),
+    x('On jest biedny, ale miły.', 'He is poor but kind.'),
+    x('Pomagamy biednym.', 'We help the poor.'),
+  ],
+  thick: [
+    x('To gruba książka.', 'This is a thick book.'),
+    x('Mam gruby sweter.', 'I have a thick sweater.'),
+    x('Mur jest gruby.', 'The wall is thick.'),
+  ],
+  thin: [
+    x('On jest chudy.', 'He is thin.'),
+    x('To chudy kot.', 'This is a thin cat.'),
+    x('Papier jest cienki, a on chudy.', 'The paper is thin, and he is thin.'),
+  ],
+  soft: [
+    x('Poduszka jest miękka.', 'The pillow is soft.'),
+    x('Lubię miękki chleb.', 'I like soft bread.'),
+    x('To miękki dywan.', 'This is a soft carpet.'),
+  ],
+  hard: [
+    x('Kamień jest twardy.', 'The stone is hard.'),
+    x('Krzesło jest twarde.', 'The chair is hard.'),
+    x('Chleb jest twardy.', 'The bread is hard.'),
+  ],
+  quickly: [
+    x('Biegnę szybko.', 'I run quickly.'),
+    x('Zrób to szybko.', 'Do it quickly.'),
+    x('Mówisz zbyt szybko.', 'You speak too quickly.'),
+  ],
+  slowly: [
+    x('Idę wolno.', 'I walk slowly.'),
+    x('Mów wolniej, proszę.', 'Speak more slowly, please.'),
+    x('Jedziemy wolno.', 'We drive slowly.'),
+  ],
+  well: [
+    x('Czuję się dobrze.', 'I feel well.'),
+    x('Śpiewasz dobrze.', 'You sing well.'),
+    x('Wszystko poszło dobrze.', 'Everything went well.'),
+  ],
+  badly: [
+    x('Śpię źle.', 'I sleep badly.'),
+    x('To wyszło źle.', 'That went badly.'),
+    x('Czuję się źle.', 'I feel badly/unwell.'),
+  ],
+  loudly: [
+    x('Mówisz za głośno.', 'You speak too loudly.'),
+    x('Muzyka gra głośno.', 'The music plays loudly.'),
+    x('Dzieci śmieją się głośno.', 'The children laugh loudly.'),
+  ],
+  quietly: [
+    x('Mów cicho.', 'Speak quietly.'),
+    x('Wchodzimy cicho.', 'We enter quietly.'),
+    x('Kot chodzi cicho.', 'The cat walks quietly.'),
+  ],
+  easily: [
+    x('Uczę się łatwo.', 'I learn easily.'),
+    x('To idzie łatwo.', 'This goes easily.'),
+    x('Otwiera się łatwo.', 'It opens easily.'),
+  ],
+  'hard-adv': [
+    x('To jest trudno.', 'This is hard / difficult.'),
+    x('Trudno powiedzieć.', 'It is hard to say.'),
+    x('Uczę się trudno dziś.', 'I am finding it hard to study today.'),
+  ],
+  together: [
+    x('Idziemy razem.', 'We go together.'),
+    x('Uczymy się razem.', 'We learn together.'),
+    x('Zróbmy to razem.', 'Let’s do it together.'),
+  ],
+  carefully: [
+    x('Jedź ostrożnie.', 'Drive carefully.'),
+    x('Otwieram to ostrożnie.', 'I open this carefully.'),
+    x('Słuchaj ostrożnie.', 'Listen carefully.'),
+  ],
+  suddenly: [
+    x('Nagle zaczęło padać.', 'Suddenly it started to rain.'),
+    x('On nagle wyszedł.', 'He suddenly left.'),
+    x('Nagle usłyszałem hałas.', 'Suddenly I heard a noise.'),
+  ],
+  exactly: [
+    x('Dokładnie tak.', 'Exactly like that.'),
+    x('Przyszedłem dokładnie o ósmej.', 'I arrived exactly at eight.'),
+    x('To jest dokładnie to.', 'That is exactly it.'),
+  ],
+  normally: [
+    x('Normalnie wstaję wcześnie.', 'I normally get up early.'),
+    x('Tak normalnie robię.', 'I normally do it that way.'),
+    x('Normalnie jest cisza.', 'Normally it is quiet.'),
+  ],
+  calmly: [
+    x('Oddychaj spokojnie.', 'Breathe calmly.'),
+    x('Mów spokojnie.', 'Speak calmly.'),
+    x('Czekamy spokojnie.', 'We wait calmly.'),
+  ],
+  happily: [
+    x('Śpiewają wesoło.', 'They sing happily.'),
+    x('Dzieci bawią się wesoło.', 'The children play happily.'),
+    x('Uśmiecha się wesoło.', 'She smiles happily.'),
+  ],
+  today: [
+    x('Dziś idę do szkoły.', 'Today I go to school.'),
+    x('Jaka jest pogoda dziś?', 'What is the weather today?'),
+    x('Dziś mam wolne.', 'I am free today.'),
+  ],
+  tomorrow: [
+    x('Jutro wracam do domu.', 'Tomorrow I return home.'),
+    x('Zobaczymy się jutro.', 'See you tomorrow.'),
+    x('Jutro jest niedziela.', 'Tomorrow is Sunday.'),
+  ],
+  yesterday: [
+    x('Wczoraj padał deszcz.', 'It rained yesterday.'),
+    x('Widziałem cię wczoraj.', 'I saw you yesterday.'),
+    x('Wczoraj było ciepło.', 'It was warm yesterday.'),
+  ],
+  often: [
+    x('Często czytam książki.', 'I often read books.'),
+    x('Często tu bywam.', 'I am often here.'),
+    x('Często piję herbatę.', 'I often drink tea.'),
+  ],
+  rarely: [
+    x('Rzadko jem słodycze.', 'I rarely eat sweets.'),
+    x('On rzadko dzwoni.', 'He rarely calls.'),
+    x('Rzadko pada śnieg.', 'It rarely snows.'),
+  ],
+  always: [
+    x('Zawsze mówię prawdę.', 'I always tell the truth.'),
+    x('Ona zawsze się uśmiecha.', 'She always smiles.'),
+    x('Zawsze zamykam drzwi.', 'I always lock the door.'),
+  ],
+  never: [
+    x('Nigdy nie kłamię.', 'I never lie.'),
+    x('On nigdy nie spóźnia się.', 'He is never late.'),
+    x('Nigdy tego nie zapomnę.', 'I will never forget that.'),
+  ],
+  soon: [
+    x('Wkrótce wrócę.', 'I will be back soon.'),
+    x('Wkrótce zaczynamy.', 'We start soon.'),
+    x('Do zobaczenia wkrótce.', 'See you soon.'),
+  ],
+  later: [
+    x('Zróbmy to później.', 'Let’s do it later.'),
+    x('Oddzwonię później.', 'I will call back later.'),
+    x('Później idziemy na spacer.', 'Later we go for a walk.'),
+  ],
+  early: [
+    x('Wstaję wcześnie.', 'I get up early.'),
+    x('Przyszedłem za wcześnie.', 'I arrived too early.'),
+    x('Pociąg odjeżdża wcześnie.', 'The train leaves early.'),
+  ],
+  late: [
+    x('Jestem spóźniony — jest późno.', 'I am late — it is late.'),
+    x('Pracuję do późna.', 'I work until late.'),
+    x('Nie kładź się późno.', 'Do not go to bed late.'),
+  ],
+  sometimes: [
+    x('Czasem jem pizza.', 'I sometimes eat pizza.'),
+    x('Czasem pada deszcz.', 'It sometimes rains.'),
+    x('Czasem potrzebuję ciszy.', 'I sometimes need quiet.'),
+  ],
+  usually: [
+    x('Zwykle piję kawę rano.', 'I usually drink coffee in the morning.'),
+    x('Zwykle chodzę piechotą.', 'I usually walk.'),
+    x('Zwykle jest tu głośno.', 'It is usually loud here.'),
+  ],
+  recently: [
+    x('Niedawno byłem w Gdańsku.', 'I was in Gdansk recently.'),
+    x('Niedawno kupiłem rower.', 'I bought a bike recently.'),
+    x('Widzieliśmy się niedawno.', 'We saw each other recently.'),
+  ],
+  immediately: [
+    x('Zrób to natychmiast.', 'Do it immediately.'),
+    x('Wróć natychmiast.', 'Come back immediately.'),
+    x('Odpowiadam natychmiast.', 'I answer immediately.'),
+  ],
+  'a-bit': [
+    x('Jestem trochę zmęczony.', 'I am a bit tired.'),
+    x('Dodaj trochę soli.', 'Add a bit of salt.'),
+    x('Mów trochę wolniej.', 'Speak a bit more slowly.'),
+  ],
+  almost: [
+    x('Prawie skończyłem.', 'I almost finished.'),
+    x('Jest prawie godzina.', 'It is almost the hour.'),
+    x('Prawie zawsze pada.', 'It almost always rains.'),
+  ],
+  quite: [
+    x('To całkiem dobre.', 'That is quite good.'),
+    x('Jestem całkiem pewny.', 'I am quite sure.'),
+    x('Pokój jest całkiem duży.', 'The room is quite big.'),
+  ],
+  too: [
+    x('To jest zbyt drogie.', 'This is too expensive.'),
+    x('Mówisz zbyt szybko.', 'You speak too quickly.'),
+    x('Herbata jest zbyt gorąca.', 'The tea is too hot.'),
+  ],
+  more: [
+    x('Chcę bardziej wyraźnie.', 'I want it more clearly.'),
+    x('To jest bardziej ważne.', 'This is more important.'),
+    x('Uczę się bardziej niż wczoraj.', 'I study more than yesterday.'),
+  ],
+  less: [
+    x('Jedz mniej cukru.', 'Eat less sugar.'),
+    x('To mniej ważne.', 'That is less important.'),
+    x('Mów mniej głośno.', 'Speak less loudly.'),
+  ],
+  especially: [
+    x('Lubię owoce, szczególnie jabłka.', 'I like fruit, especially apples.'),
+    x('To szczególnie ważne.', 'This is especially important.'),
+    x('Szczególnie zimą jest zimno.', 'It is especially cold in winter.'),
+  ],
+  completely: [
+    x('Jestem całkowicie pewny.', 'I am completely sure.'),
+    x('To całkowicie nowe.', 'This is completely new.'),
+    x('Zrozumiałem całkowicie.', 'I understood completely.'),
+  ],
+  really: [
+    x('Naprawdę lubię to.', 'I really like this.'),
+    x('Czy naprawdę idziesz?', 'Are you really going?'),
+    x('To naprawdę pomaga.', 'This really helps.'),
+  ],
+  rather: [
+    x('Raczej zostanę w domu.', 'I would rather stay home.'),
+    x('To raczej trudne.', 'This is rather difficult.'),
+    x('Raczej nie.', 'Rather not.'),
+  ],
+  slightly: [
+    x('Jest nieco zimniej.', 'It is slightly colder.'),
+    x('Dodaj nieco cukru.', 'Add slightly more sugar.'),
+    x('Jestem nieco spóźniony.', 'I am slightly late.'),
+  ],
+  significantly: [
+    x('To znacznie lepsze.', 'This is significantly better.'),
+    x('Ceny znacznie wzrosły.', 'Prices rose significantly.'),
+    x('Uczę się znacznie więcej.', 'I study significantly more.'),
+  ],
+  'at-all': [
+    x('Wcale nie rozumiem.', 'I do not understand at all.'),
+    x('To wcale nie jest trudne.', 'This is not hard at all.'),
+    x('Nie chcę wcale.', 'I do not want it at all.'),
+  ],
+  absolutely: [
+    x('Absolutnie tak.', 'Absolutely yes.'),
+    x('To absolutnie konieczne.', 'This is absolutely necessary.'),
+    x('Absolutnie nie.', 'Absolutely not.'),
+  ],
+  enough: [
+    x('Mam wystarczająco czasu.', 'I have enough time.'),
+    x('To wystarczająco dobre.', 'That is good enough.'),
+    x('Czy masz wystarczająco pieniędzy?', 'Do you have enough money?'),
+  ],
+  'num-1': [
+    x('Mam jednego brata.', 'I have one brother.'),
+    x('To jeden dom.', 'This is one house.'),
+    x('Jeden, dwa, trzy.', 'One, two, three.'),
+  ],
+  'num-2': [
+    x('Mam dwa koty.', 'I have two cats.'),
+    x('Dwa bilety, proszę.', 'Two tickets, please.'),
+    x('Stoimy we dwóch.', 'There are two of us.'),
+  ],
+  'num-3': [
+    x('Kupuję trzy jabłka.', 'I buy three apples.'),
+    x('Spotkamy się o trzeciej.', 'We will meet at three.'),
+    x('Trzy dni urlopu.', 'Three days of leave.'),
+  ],
+  'num-4': [
+    x('Stół ma cztery nogi.', 'The table has four legs.'),
+    x('Przyjeżdżam za cztery godziny.', 'I arrive in four hours.'),
+    x('Cztery pory roku.', 'Four seasons.'),
+  ],
+  'num-5': [
+    x('Mam pięć euro.', 'I have five euros.'),
+    x('Pięć minut, proszę.', 'Five minutes, please.'),
+    x('Pracuję pięć dni w tygodniu.', 'I work five days a week.'),
+  ],
+  'num-6': [
+    x('Wstaję o szóstej.', 'I get up at six.'),
+    x('Sześć osób przy stole.', 'Six people at the table.'),
+    x('Kupuję sześć jajek.', 'I buy six eggs.'),
+  ],
+  'num-7': [
+    x('Tydzień ma siedem dni.', 'A week has seven days.'),
+    x('Siedem godzin snu.', 'Seven hours of sleep.'),
+    x('Film trwa siedem odcinków.', 'The show has seven episodes.'),
+  ],
+  'num-8': [
+    x('Praca zaczyna się o ósmej.', 'Work starts at eight.'),
+    x('Osiem osób w kolejce.', 'Eight people in line.'),
+    x('Mam osiem książek.', 'I have eight books.'),
+  ],
+  'num-9': [
+    x('Sklep zamyka się o dziewiątej.', 'The shop closes at nine.'),
+    x('Dziewięć wiadomości.', 'Nine messages.'),
+    x('Kot ma dziewięć żywotów.', 'A cat has nine lives.'),
+  ],
+  'num-10': [
+    x('Liczymy do dziesięciu.', 'We count to ten.'),
+    x('Dziesięć złotych, proszę.', 'Ten zloty, please.'),
+    x('Mam dziesięć minut.', 'I have ten minutes.'),
+  ],
+  'num-11': [
+    x('Pociąg o jedenastej.', 'The train at eleven.'),
+    x('Jedenaście osób czeka.', 'Eleven people are waiting.'),
+    x('Urodziny jedenastego.', 'Birthday on the eleventh.'),
+  ],
+  'num-12': [
+    x('Rok ma dwanaście miesięcy.', 'A year has twelve months.'),
+    x('Dwanaście godzin dnia.', 'Twelve hours of daylight.'),
+    x('Spotkanie o dwunastej.', 'A meeting at twelve.'),
+  ],
+  'num-15': [
+    x('Piętnaście minut spóźnienia.', 'Fifteen minutes late.'),
+    x('Mam piętnaście lat.', 'I am fifteen years old.'),
+    x('Piętnaście euro za bilet.', 'Fifteen euros for a ticket.'),
+  ],
+  'num-20': [
+    x('Dwadzieścia złotych.', 'Twenty zloty.'),
+    x('Za dwadzieścia minut.', 'In twenty minutes.'),
+    x('Klasa ma dwadzieścia osób.', 'The class has twenty people.'),
+  ],
+  'num-100': [
+    x('Sto procent pewności.', 'One hundred percent sure.'),
+    x('Sto metrów dalej.', 'One hundred meters further.'),
+    x('Kosztuje sto złotych.', 'It costs one hundred zloty.'),
+  ],
+  monday: [
+    x('W poniedziałek idę do pracy.', 'On Monday I go to work.'),
+    x('Poniedziałek jest ciężki.', 'Monday is hard.'),
+    x('Do zobaczenia w poniedziałek.', 'See you on Monday.'),
+  ],
+  tuesday: [
+    x('We wtorek mam spotkanie.', 'On Tuesday I have a meeting.'),
+    x('Wtorek jest lepszy.', 'Tuesday is better.'),
+    x('Trening we wtorek.', 'Training on Tuesday.'),
+  ],
+  wednesday: [
+    x('W środę jem poza domem.', 'On Wednesday I eat out.'),
+    x('Środa w środku tygodnia.', 'Wednesday is midweek.'),
+    x('Lekcja w środę.', 'A lesson on Wednesday.'),
+  ],
+  thursday: [
+    x('W czwartek wracam późno.', 'On Thursday I come back late.'),
+    x('Czwartek przed weekendem.', 'Thursday before the weekend.'),
+    x('Spotkamy się w czwartek.', 'We will meet on Thursday.'),
+  ],
+  friday: [
+    x('W piątek jest impreza.', 'On Friday there is a party.'),
+    x('Piątek to ulubiony dzień.', 'Friday is my favorite day.'),
+    x('Kończymy w piątek.', 'We finish on Friday.'),
+  ],
+  saturday: [
+    x('W sobotę śpię długo.', 'On Saturday I sleep in.'),
+    x('Sobota na zakupy.', 'Saturday for shopping.'),
+    x('Lubię sobotę.', 'I like Saturday.'),
+  ],
+  sunday: [
+    x('W niedzielę jestem z rodziną.', 'On Sunday I am with family.'),
+    x('Niedziela jest spokojna.', 'Sunday is calm.'),
+    x('Kościół w niedzielę.', 'Church on Sunday.'),
+  ],
+  week: [
+    x('Ten tydzień jest zajęty.', 'This week is busy.'),
+    x('Za tydzień wracam.', 'I return in a week.'),
+    x('Pracuję cały tydzień.', 'I work the whole week.'),
+  ],
+  weekend: [
+    x('Weekend zaczyna się w piątek.', 'The weekend starts on Friday.'),
+    x('Miłego weekendu!', 'Have a nice weekend!'),
+    x('Na weekend jadę nad morze.', 'For the weekend I go to the sea.'),
+  ],
+  weekday: [
+    x('W dzień powszedni wstaję wcześnie.', 'On a weekday I get up early.'),
+    x('Dzień powszedni to praca.', 'A weekday means work.'),
+    x('Nie w weekend, w dzień powszedni.', 'Not on the weekend, on a weekday.'),
+  ],
+  holiday: [
+    x('Jutro jest święto.', 'Tomorrow is a holiday.'),
+    x('Święto narodowe.', 'A national holiday.'),
+    x('Lubię długie święta.', 'I like long holidays.'),
+  ],
+  calendar: [
+    x('Sprawdzam kalendarz.', 'I check the calendar.'),
+    x('Kalendarz wisi na ścianie.', 'The calendar hangs on the wall.'),
+    x('Zapisz to w kalendarzu.', 'Write it in the calendar.'),
+  ],
+  date: [
+    x('Jaka jest dzisiejsza data?', 'What is today’s date?'),
+    x('Data urodzenia.', 'Date of birth.'),
+    x('Zmieniamy datę spotkania.', 'We change the meeting date.'),
+  ],
+  'everyday-adv': [
+    x('Ćwiczę codziennie.', 'I practice every day.'),
+    x('Codziennie piję kawę.', 'I drink coffee every day.'),
+    x('Widzimy się codziennie.', 'We see each other every day.'),
+  ],
+  schedule: [
+    x('Mam plan na dziś.', 'I have a schedule for today.'),
+    x('Sprawdź plan lekcji.', 'Check the class schedule.'),
+    x('Trzymamy się planu.', 'We stick to the schedule.'),
+  ],
+  january: [
+    x('Styczeń jest zimny.', 'January is cold.'),
+    x('Urodziny w styczniu.', 'Birthday in January.'),
+    x('Nowy rok zaczyna się w styczniu.', 'The new year starts in January.'),
+  ],
+  february: [
+    x('Luty jest krótki.', 'February is short.'),
+    x('Walentynki w lutym.', 'Valentine’s Day is in February.'),
+    x('W lutym pada śnieg.', 'It snows in February.'),
+  ],
+  march: [
+    x('W marcu zaczyna się wiosna.', 'Spring starts in March.'),
+    x('Marzec bywa wietrzny.', 'March can be windy.'),
+    x('Egzamin w marcu.', 'An exam in March.'),
+  ],
+  april: [
+    x('W kwietniu pada deszcz.', 'It rains in April.'),
+    x('Kwiecień przynosi kwiaty.', 'April brings flowers.'),
+    x('Urlop w kwietniu.', 'Vacation in April.'),
+  ],
+  may: [
+    x('Maj jest ciepły.', 'May is warm.'),
+    x('Święto w maju.', 'A holiday in May.'),
+    x('Lubię maj.', 'I like May.'),
+  ],
+  june: [
+    x('W czerwcu kończy się szkoła.', 'School ends in June.'),
+    x('Czerwiec jest słoneczny.', 'June is sunny.'),
+    x('Wesele w czerwcu.', 'A wedding in June.'),
+  ],
+  july: [
+    x('Lipiec to wakacje.', 'July is vacation time.'),
+    x('W lipcu jest gorąco.', 'It is hot in July.'),
+    x('Morze w lipcu.', 'The sea in July.'),
+  ],
+  august: [
+    x('Sierpień jest letni.', 'August is summery.'),
+    x('W sierpniu wracam z urlopu.', 'In August I return from leave.'),
+    x('Festiwal w sierpniu.', 'A festival in August.'),
+  ],
+  september: [
+    x('Wrzesień zaczyna szkołę.', 'September starts school.'),
+    x('We wrześniu chłodniej.', 'It is cooler in September.'),
+    x('Spotkanie we wrześniu.', 'A meeting in September.'),
+  ],
+  october: [
+    x('Październik ma liście.', 'October has leaves.'),
+    x('W październiku jest jesień.', 'It is autumn in October.'),
+    x('Urodziny w październiku.', 'Birthday in October.'),
+  ],
+  november: [
+    x('Listopad jest szary.', 'November is gray.'),
+    x('W listopadzie wcześnie robi się ciemno.', 'In November it gets dark early.'),
+    x('Podróż w listopadzie.', 'A trip in November.'),
+  ],
+  december: [
+    x('Grudzień ma święta.', 'December has the holidays.'),
+    x('W grudniu pada śnieg.', 'It snows in December.'),
+    x('Prezenty w grudniu.', 'Gifts in December.'),
+  ],
+  month: [
+    x('Ten miesiąc mija szybko.', 'This month goes by quickly.'),
+    x('Za miesiąc wracam.', 'I return in a month.'),
+    x('Płacę co miesiąc.', 'I pay every month.'),
+  ],
+  year: [
+    x('Nowy rok zaraz.', 'The new year is soon.'),
+    x('Pracuję tu rok.', 'I have worked here a year.'),
+    x('Dobrego roku!', 'Happy New Year!'),
+  ],
+  season: [
+    x('Jaka to pora roku?', 'What season is this?'),
+    x('Lubię każdą porę roku.', 'I like every season.'),
+    x('Pora roku się zmienia.', 'The season is changing.'),
+  ],
+  hour: [
+    x('Za godzinę wracam.', 'I will be back in an hour.'),
+    x('Godzina lekcji.', 'An hour of class.'),
+    x('Która jest godzina?', 'What time is it?'),
+  ],
+  minute: [
+    x('Chwilę, minutę.', 'One moment, a minute.'),
+    x('Za pięć minut.', 'In five minutes.'),
+    x('Minuta ciszy.', 'A minute of silence.'),
+  ],
+  second: [
+    x('Sekunda i gotowe.', 'A second and it is done.'),
+    x('Poczekaj sekundę.', 'Wait a second.'),
+    x('Każda sekunda się liczy.', 'Every second counts.'),
+  ],
+  morning: [
+    x('Rano piję kawę.', 'In the morning I drink coffee.'),
+    x('Dzień dobry, miłego rana.', 'Good morning, have a nice morning.'),
+    x('Rano jest zimno.', 'It is cold in the morning.'),
+  ],
+  afternoon: [
+    x('Po południu pracuję.', 'In the afternoon I work.'),
+    x('Spotkanie po południu.', 'A meeting in the afternoon.'),
+    x('Lubię spokojne popołudnie.', 'I like a quiet afternoon.'),
+  ],
+  evening: [
+    x('Wieczorem oglądam film.', 'In the evening I watch a movie.'),
+    x('Dobry wieczór!', 'Good evening!'),
+    x('Wieczór z przyjaciółmi.', 'An evening with friends.'),
+  ],
+  night: [
+    x('W nocy śpię.', 'At night I sleep.'),
+    x('Dobranoc, miłej nocy.', 'Good night, have a nice night.'),
+    x('Noc jest cicha.', 'The night is quiet.'),
+  ],
+  noon: [
+    x('Obiad o południu.', 'Lunch at noon.'),
+    x('Spotkamy się w południe.', 'We will meet at noon.'),
+    x('W południe jest ciepło.', 'It is warm at noon.'),
+  ],
+  midnight: [
+    x('Wracam o północy.', 'I come back at midnight.'),
+    x('Północ kończy dzień.', 'Midnight ends the day.'),
+    x('Pociąg o północy.', 'A train at midnight.'),
+  ],
+  'clock-noun': [
+    x('Zegar na ścianie.', 'A clock on the wall.'),
+    x('Zegar się spóźnia.', 'The clock is slow.'),
+    x('Słyszę zegar.', 'I hear the clock.'),
+  ],
+  'watch-noun': [
+    x('Mam nowy zegarek.', 'I have a new watch.'),
+    x('Zegarek jest srebrny.', 'The watch is silver.'),
+    x('Patrzę na zegarek.', 'I look at my watch.'),
+  ],
+  'quarter-hour': [
+    x('Za kwadrans wychodzę.', 'I leave in a quarter of an hour.'),
+    x('Kwadrans przerwy.', 'A quarter-hour break.'),
+    x('Poczekaj kwadrans.', 'Wait a quarter of an hour.'),
+  ],
+  'half-hour': [
+    x('Film za pół godziny.', 'The movie in half an hour.'),
+    x('Biegam pół godziny.', 'I run for half an hour.'),
+    x('Pół godziny temu.', 'Half an hour ago.'),
+  ],
+  alarm: [
+    x('Budzik dzwoni o szóstej.', 'The alarm rings at six.'),
+    x('Ustawiam budzik.', 'I set the alarm.'),
+    x('Wyłącz budzik.', 'Turn off the alarm.'),
+  ],
+  appointment: [
+    x('Mam termin u lekarza.', 'I have a doctor’s appointment.'),
+    x('Zmieniam termin.', 'I change the appointment.'),
+    x('Jaki jest termin?', 'What is the appointment time?'),
   ],
   'core-nie': [
     x('Nie chcę kawy.', 'I do not want coffee.'),

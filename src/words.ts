@@ -1,12 +1,17 @@
 import { examplesFor, type Example } from './examples.ts'
 
 export type LangCode = 'en' | 'pl'
+export type CategoryGroupId = 'core' | 'nouns' | 'verbs' | 'modifiers' | 'conjugations'
 export type CategoryId =
   | 'core1'
   | 'core2'
   | 'core3'
   | 'core4'
   | 'core5'
+  | 'numbers'
+  | 'days'
+  | 'months'
+  | 'clock'
   | 'home'
   | 'furniture'
   | 'kitchen'
@@ -30,9 +35,20 @@ export type CategoryId =
   | 'weather'
   | 'actions'
   | 'doing'
+  | 'motion'
+  | 'social'
+  | 'chores'
   | 'descriptions'
   | 'size'
-export type ModeId = 'learn' | 'choice' | 'type'
+  | 'colors'
+  | 'looks'
+  | 'manner'
+  | 'timing'
+  | 'degree'
+  | 'conj-present'
+  | 'conj-past'
+  | 'conj-future'
+export type ModeId = 'learn' | 'choice' | 'type' | 'blank'
 
 export type Mode = {
   id: ModeId
@@ -49,12 +65,19 @@ export type LanguageOption = {
   voiceLangs: string[]
 }
 
+export type CategoryGroup = {
+  id: CategoryGroupId
+  label: string
+}
+
 export type Category = {
   id: CategoryId
+  group: CategoryGroupId
   label: string
   short: string
   emoji: string
   tint: string
+  kind?: 'vocab' | 'sheet'
 }
 
 export type { Example }
@@ -85,42 +108,95 @@ export const languages: LanguageOption[] = [
   },
 ]
 
+export const categoryGroups: CategoryGroup[] = [
+  { id: 'core', label: 'Core' },
+  { id: 'nouns', label: 'Nouns' },
+  { id: 'verbs', label: 'Verbs' },
+  { id: 'modifiers', label: 'Adjectives & Adverbs' },
+  { id: 'conjugations', label: 'Conjugations' },
+]
+
 export const categories: Category[] = [
-  { id: 'core1', label: 'Core Words 1', short: 'Core 1', emoji: '1️⃣', tint: '#241c28' },
-  { id: 'core2', label: 'Core Words 2', short: 'Core 2', emoji: '2️⃣', tint: '#221c2a' },
-  { id: 'core3', label: 'Core Words 3', short: 'Core 3', emoji: '3️⃣', tint: '#201c2c' },
-  { id: 'core4', label: 'Core Words 4', short: 'Core 4', emoji: '4️⃣', tint: '#1e1c2e' },
-  { id: 'core5', label: 'Core Words 5', short: 'Core 5', emoji: '5️⃣', tint: '#1c1c30' },
-  { id: 'kitchen', label: 'Kitchen', short: 'Kitchen', emoji: '🍳', tint: '#3a2418' },
-  { id: 'furniture', label: 'Furniture', short: 'Furniture', emoji: '🛋️', tint: '#2c241c' },
-  { id: 'home', label: 'Home', short: 'Home', emoji: '🏠', tint: '#2a2218' },
-  { id: 'fruit', label: 'Fruit', short: 'Fruit', emoji: '🍎', tint: '#3a2018' },
-  { id: 'food', label: 'Food', short: 'Food', emoji: '🍽️', tint: '#3a2418' },
-  { id: 'drinks', label: 'Drinks & sweets', short: 'Drinks & sweets', emoji: '☕', tint: '#301c14' },
-  { id: 'animals', label: 'Pets & farm', short: 'Pets & farm', emoji: '🐶', tint: '#243018' },
-  { id: 'wild', label: 'Wild animals', short: 'Wild animals', emoji: '🦁', tint: '#2a2814' },
-  { id: 'creatures', label: 'Sea & bugs', short: 'Sea & bugs', emoji: '🐙', tint: '#182830' },
-  { id: 'transport', label: 'Transport', short: 'Transport', emoji: '🚗', tint: '#1a2430' },
-  { id: 'city', label: 'Places', short: 'Places', emoji: '🏙️', tint: '#1c2030' },
-  { id: 'streets', label: 'Travel', short: 'Travel', emoji: '🧳', tint: '#182028' },
-  { id: 'people', label: 'Family', short: 'Family', emoji: '👪', tint: '#3a2820' },
-  { id: 'jobs', label: 'Jobs', short: 'Jobs', emoji: '💼', tint: '#2c2218' },
-  { id: 'face', label: 'Face', short: 'Face', emoji: '🙂', tint: '#301820' },
-  { id: 'body', label: 'Body', short: 'Body', emoji: '💪', tint: '#2c1820' },
-  { id: 'health', label: 'Health', short: 'Health', emoji: '💊', tint: '#30181c' },
-  { id: 'clothing', label: 'Clothes', short: 'Clothes', emoji: '👕', tint: '#2c2030' },
-  { id: 'accessories', label: 'Accessories', short: 'Accessories', emoji: '👜', tint: '#282030' },
-  { id: 'weather', label: 'Weather', short: 'Weather', emoji: '🌧️', tint: '#1c242c' },
-  { id: 'nature', label: 'Nature', short: 'Nature', emoji: '🌿', tint: '#1c2c18' },
-  { id: 'actions', label: 'Everyday', short: 'Everyday', emoji: '🚶', tint: '#242018' },
-  { id: 'doing', label: 'Actions', short: 'Actions', emoji: '🔎', tint: '#282418' },
-  { id: 'descriptions', label: 'Feelings', short: 'Feelings', emoji: '😊', tint: '#302028' },
-  { id: 'size', label: 'Adjectives', short: 'Adjectives', emoji: '📏', tint: '#282020' },
+  { id: 'core1', group: 'core', label: 'Core Words 1', short: 'Core 1', emoji: '1️⃣', tint: '#241c28' },
+  { id: 'core2', group: 'core', label: 'Core Words 2', short: 'Core 2', emoji: '2️⃣', tint: '#221c2a' },
+  { id: 'core3', group: 'core', label: 'Core Words 3', short: 'Core 3', emoji: '3️⃣', tint: '#201c2c' },
+  { id: 'core4', group: 'core', label: 'Core Words 4', short: 'Core 4', emoji: '4️⃣', tint: '#1e1c2e' },
+  { id: 'core5', group: 'core', label: 'Core Words 5', short: 'Core 5', emoji: '5️⃣', tint: '#1c1c30' },
+  { id: 'numbers', group: 'core', label: 'Numbers', short: 'Numbers', emoji: '🔢', tint: '#1a1c32' },
+  { id: 'days', group: 'core', label: 'Days of the week', short: 'Days', emoji: '📅', tint: '#1c2034' },
+  { id: 'months', group: 'core', label: 'Months', short: 'Months', emoji: '🗓️', tint: '#1e1830' },
+  { id: 'clock', group: 'core', label: 'Time of day', short: 'Hours', emoji: '⏰', tint: '#18202e' },
+  { id: 'kitchen', group: 'nouns', label: 'Kitchen', short: 'Kitchen', emoji: '🍳', tint: '#3a2418' },
+  { id: 'furniture', group: 'nouns', label: 'Furniture', short: 'Furniture', emoji: '🛋️', tint: '#2c241c' },
+  { id: 'home', group: 'nouns', label: 'Home', short: 'Home', emoji: '🏠', tint: '#2a2218' },
+  { id: 'fruit', group: 'nouns', label: 'Fruit', short: 'Fruit', emoji: '🍎', tint: '#3a2018' },
+  { id: 'food', group: 'nouns', label: 'Food', short: 'Food', emoji: '🍽️', tint: '#3a2418' },
+  { id: 'drinks', group: 'nouns', label: 'Drinks & sweets', short: 'Drinks & sweets', emoji: '☕', tint: '#301c14' },
+  { id: 'animals', group: 'nouns', label: 'Pets & farm', short: 'Pets & farm', emoji: '🐶', tint: '#243018' },
+  { id: 'wild', group: 'nouns', label: 'Wild animals', short: 'Wild animals', emoji: '🦁', tint: '#2a2814' },
+  { id: 'creatures', group: 'nouns', label: 'Sea & bugs', short: 'Sea & bugs', emoji: '🐙', tint: '#182830' },
+  { id: 'transport', group: 'nouns', label: 'Transport', short: 'Transport', emoji: '🚗', tint: '#1a2430' },
+  { id: 'city', group: 'nouns', label: 'Places', short: 'Places', emoji: '🏙️', tint: '#1c2030' },
+  { id: 'streets', group: 'nouns', label: 'Travel', short: 'Travel', emoji: '🧳', tint: '#182028' },
+  { id: 'people', group: 'nouns', label: 'Family', short: 'Family', emoji: '👪', tint: '#3a2820' },
+  { id: 'jobs', group: 'nouns', label: 'Jobs', short: 'Jobs', emoji: '💼', tint: '#2c2218' },
+  { id: 'face', group: 'nouns', label: 'Face', short: 'Face', emoji: '🙂', tint: '#301820' },
+  { id: 'body', group: 'nouns', label: 'Body', short: 'Body', emoji: '💪', tint: '#2c1820' },
+  { id: 'health', group: 'nouns', label: 'Health', short: 'Health', emoji: '💊', tint: '#30181c' },
+  { id: 'clothing', group: 'nouns', label: 'Clothes', short: 'Clothes', emoji: '👕', tint: '#2c2030' },
+  { id: 'accessories', group: 'nouns', label: 'Accessories', short: 'Accessories', emoji: '👜', tint: '#282030' },
+  { id: 'weather', group: 'nouns', label: 'Weather', short: 'Weather', emoji: '🌧️', tint: '#1c242c' },
+  { id: 'nature', group: 'nouns', label: 'Nature', short: 'Nature', emoji: '🌿', tint: '#1c2c18' },
+  { id: 'actions', group: 'verbs', label: 'Everyday', short: 'Everyday', emoji: '🚶', tint: '#242018' },
+  { id: 'doing', group: 'verbs', label: 'Actions', short: 'Actions', emoji: '🔎', tint: '#282418' },
+  { id: 'motion', group: 'verbs', label: 'Movement', short: 'Movement', emoji: '🏃', tint: '#2a2414' },
+  { id: 'social', group: 'verbs', label: 'People & mind', short: 'People & mind', emoji: '💬', tint: '#2c2018' },
+  { id: 'chores', group: 'verbs', label: 'Home verbs', short: 'Home verbs', emoji: '🧹', tint: '#262018' },
+  { id: 'descriptions', group: 'modifiers', label: 'Feelings', short: 'Feelings', emoji: '😊', tint: '#302028' },
+  { id: 'size', group: 'modifiers', label: 'Qualities', short: 'Qualities', emoji: '📏', tint: '#282020' },
+  { id: 'colors', group: 'modifiers', label: 'Colors', short: 'Colors', emoji: '🎨', tint: '#2a1828' },
+  { id: 'looks', group: 'modifiers', label: 'Appearance', short: 'Appearance', emoji: '🪞', tint: '#2c1824' },
+  { id: 'manner', group: 'modifiers', label: 'Manner', short: 'Manner', emoji: '🧭', tint: '#241c28' },
+  { id: 'timing', group: 'modifiers', label: 'Time & frequency', short: 'Time', emoji: '🕒', tint: '#1c242c' },
+  { id: 'degree', group: 'modifiers', label: 'Degree', short: 'Degree', emoji: '📶', tint: '#201c2a' },
+  {
+    id: 'conj-present',
+    group: 'conjugations',
+    kind: 'sheet',
+    label: 'Present tense',
+    short: 'Present',
+    emoji: '⏱️',
+    tint: '#1c2430',
+  },
+  {
+    id: 'conj-past',
+    group: 'conjugations',
+    kind: 'sheet',
+    label: 'Past tense',
+    short: 'Past',
+    emoji: '⏪',
+    tint: '#241c28',
+  },
+  {
+    id: 'conj-future',
+    group: 'conjugations',
+    kind: 'sheet',
+    label: 'Future tense',
+    short: 'Future',
+    emoji: '⏩',
+    tint: '#182828',
+  },
 ]
 
 export const modes: Mode[] = [
   { id: 'learn', label: 'Learn', detail: 'Scroll, see, and hear each word', emoji: '📖' },
   { id: 'choice', label: 'Multiple choice', detail: 'Pick the right word from three', emoji: '✅' },
+  {
+    id: 'blank',
+    label: 'Fill in the blank',
+    detail: 'Pick the missing word in a sentence',
+    emoji: '✏️',
+  },
   { id: 'type', label: 'Typing', detail: 'Type the word yourself', emoji: '⌨️' },
 ]
 
@@ -265,6 +341,70 @@ export const words: Word[] = [
   word('core-razem', 'core5', '🫶', 'together', 'razem'),
   word('core-sam', 'core5', '🧍', 'alone', 'sam'),
   word('core-prawda', 'core5', '✅', 'truth', 'prawda'),
+
+  word('num-1', 'numbers', '1️⃣', 'one', 'jeden'),
+  word('num-2', 'numbers', '2️⃣', 'two', 'dwa'),
+  word('num-3', 'numbers', '3️⃣', 'three', 'trzy'),
+  word('num-4', 'numbers', '4️⃣', 'four', 'cztery'),
+  word('num-5', 'numbers', '5️⃣', 'five', 'pięć'),
+  word('num-6', 'numbers', '6️⃣', 'six', 'sześć'),
+  word('num-7', 'numbers', '7️⃣', 'seven', 'siedem'),
+  word('num-8', 'numbers', '8️⃣', 'eight', 'osiem'),
+  word('num-9', 'numbers', '9️⃣', 'nine', 'dziewięć'),
+  word('num-10', 'numbers', '🔟', 'ten', 'dziesięć'),
+  word('num-11', 'numbers', '🔢', 'eleven', 'jedenaście'),
+  word('num-12', 'numbers', '🔢', 'twelve', 'dwanaście'),
+  word('num-15', 'numbers', '🔢', 'fifteen', 'piętnaście'),
+  word('num-20', 'numbers', '🔢', 'twenty', 'dwadzieścia'),
+  word('num-100', 'numbers', '💯', 'one hundred', 'sto'),
+
+  word('monday', 'days', '1️⃣', 'Monday', 'poniedziałek'),
+  word('tuesday', 'days', '2️⃣', 'Tuesday', 'wtorek'),
+  word('wednesday', 'days', '3️⃣', 'Wednesday', 'środa'),
+  word('thursday', 'days', '4️⃣', 'Thursday', 'czwartek'),
+  word('friday', 'days', '5️⃣', 'Friday', 'piątek'),
+  word('saturday', 'days', '6️⃣', 'Saturday', 'sobota'),
+  word('sunday', 'days', '7️⃣', 'Sunday', 'niedziela'),
+  word('week', 'days', '📆', 'week', 'tydzień'),
+  word('weekend', 'days', '🎉', 'weekend', 'weekend'),
+  word('weekday', 'days', '💼', 'weekday', 'dzień powszedni'),
+  word('holiday', 'days', '🏖️', 'holiday', 'święto'),
+  word('calendar', 'days', '🗓️', 'calendar', 'kalendarz'),
+  word('date', 'days', '📌', 'date', 'data'),
+  word('everyday-adv', 'days', '🔁', 'every day', 'codziennie'),
+  word('schedule', 'days', '📋', 'schedule', 'plan'),
+
+  word('january', 'months', '❄️', 'January', 'styczeń'),
+  word('february', 'months', '💝', 'February', 'luty'),
+  word('march', 'months', '🌱', 'March', 'marzec'),
+  word('april', 'months', '🌧️', 'April', 'kwiecień'),
+  word('may', 'months', '🌸', 'May', 'maj'),
+  word('june', 'months', '☀️', 'June', 'czerwiec'),
+  word('july', 'months', '🏖️', 'July', 'lipiec'),
+  word('august', 'months', '🌻', 'August', 'sierpień'),
+  word('september', 'months', '🍎', 'September', 'wrzesień'),
+  word('october', 'months', '🍂', 'October', 'październik'),
+  word('november', 'months', '🌫️', 'November', 'listopad'),
+  word('december', 'months', '🎄', 'December', 'grudzień'),
+  word('month', 'months', '🗓️', 'month', 'miesiąc'),
+  word('year', 'months', '🎉', 'year', 'rok'),
+  word('season', 'months', '🌍', 'season', 'pora roku'),
+
+  word('hour', 'clock', '⏰', 'hour', 'godzina'),
+  word('minute', 'clock', '⏱️', 'minute', 'minuta'),
+  word('second', 'clock', '⏲️', 'second', 'sekunda'),
+  word('morning', 'clock', '🌅', 'morning', 'rano'),
+  word('afternoon', 'clock', '🌤️', 'afternoon', 'popołudnie'),
+  word('evening', 'clock', '🌆', 'evening', 'wieczór'),
+  word('night', 'clock', '🌙', 'night', 'noc'),
+  word('noon', 'clock', '☀️', 'noon', 'południe'),
+  word('midnight', 'clock', '🌑', 'midnight', 'północ'),
+  word('clock-noun', 'clock', '🕰️', 'clock', 'zegar'),
+  word('watch-noun', 'clock', '⌚', 'watch', 'zegarek'),
+  word('quarter-hour', 'clock', '🕒', 'quarter hour', 'kwadrans'),
+  word('half-hour', 'clock', '🕕', 'half an hour', 'pół godziny'),
+  word('alarm', 'clock', '⏰', 'alarm', 'budzik'),
+  word('appointment', 'clock', '📅', 'appointment', 'termin'),
 
   word('spoon', 'kitchen', '🥄', 'spoon', 'łyżka'),
   word('fork', 'kitchen', '🍴', 'fork', 'widelec'),
@@ -541,6 +681,7 @@ export const words: Word[] = [
   word('walk', 'actions', '🚶', 'walk', 'chodzić'),
   word('run', 'actions', '🏃', 'run', 'biegać'),
   word('stand', 'actions', '🧍', 'stand', 'stać'),
+  word('sit', 'actions', '🪑', 'sit', 'siedzieć'),
   word('read', 'actions', '📖', 'read', 'czytać'),
   word('write', 'actions', '✍️', 'write', 'pisać'),
   word('speak', 'actions', '💬', 'speak', 'mówić'),
@@ -548,6 +689,8 @@ export const words: Word[] = [
   word('see', 'actions', '👀', 'see', 'widzieć'),
   word('wash', 'actions', '🫧', 'wash', 'myć'),
   word('buy', 'actions', '🛒', 'buy', 'kupować'),
+  word('cook', 'actions', '🍳', 'cook', 'gotować'),
+
   word('work', 'doing', '💼', 'work', 'pracować'),
   word('play', 'doing', '🎮', 'play', 'grać'),
   word('give', 'doing', '🤲', 'give', 'dawać'),
@@ -559,6 +702,59 @@ export const words: Word[] = [
   word('send', 'doing', '📨', 'send', 'wysyłać'),
   word('learn', 'doing', '📘', 'learn', 'uczyć się'),
   word('laugh', 'doing', '😂', 'laugh', 'śmiać się'),
+  word('open', 'doing', '🚪', 'open', 'otwierać'),
+  word('close', 'doing', '🔒', 'close', 'zamykać'),
+  word('wait', 'doing', '⏳', 'wait', 'czekać'),
+  word('understand', 'doing', '💡', 'understand', 'rozumieć'),
+
+  word('drive', 'motion', '🚗', 'drive', 'jechać'),
+  word('swim', 'motion', '🏊', 'swim', 'pływać'),
+  word('fly', 'motion', '✈️', 'fly', 'latać'),
+  word('jump', 'motion', '🦘', 'jump', 'skakać'),
+  word('dance', 'motion', '💃', 'dance', 'tańczyć'),
+  word('lie-down', 'motion', '🛏️', 'lie down', 'leżeć'),
+  word('climb', 'motion', '🧗', 'climb', 'wspinać się'),
+  word('fall', 'motion', '🍂', 'fall', 'upadać'),
+  word('carry', 'motion', '📦', 'carry', 'nosić'),
+  word('pull', 'motion', '🧲', 'pull', 'ciągnąć'),
+  word('push', 'motion', '👉', 'push', 'pchać'),
+  word('throw', 'motion', '⚾', 'throw', 'rzucać'),
+  word('catch', 'motion', '🤾', 'catch', 'łapać'),
+  word('ride', 'motion', '🚲', 'ride', 'jeździć'),
+  word('enter', 'motion', '➡️', 'enter', 'wchodzić'),
+
+  word('like', 'social', '👍', 'like', 'lubić'),
+  word('love-verb', 'social', '❤️', 'love', 'kochać'),
+  word('hate', 'social', '💔', 'hate', 'nienawidzić'),
+  word('remember', 'social', '🧠', 'remember', 'pamiętać'),
+  word('forget', 'social', '🫥', 'forget', 'zapominać'),
+  word('meet', 'social', '🤝', 'meet', 'spotykać'),
+  word('visit', 'social', '🏠', 'visit', 'odwiedzać'),
+  word('invite', 'social', '📩', 'invite', 'zapraszać'),
+  word('thank', 'social', '🙏', 'thank', 'dziękować'),
+  word('apologize', 'social', '🙇', 'apologize', 'przepraszać'),
+  word('promise', 'social', '🤞', 'promise', 'obiecywać'),
+  word('decide', 'social', '⚖️', 'decide', 'decydować'),
+  word('choose', 'social', '☝️', 'choose', 'wybierać'),
+  word('hope', 'social', '🌟', 'hope', 'mieć nadzieję'),
+  word('believe', 'social', '🕊️', 'believe', 'wierzyć'),
+
+  word('clean', 'chores', '🧹', 'clean', 'sprzątać'),
+  word('wash-clothes', 'chores', '👕', 'wash clothes', 'prać'),
+  word('iron', 'chores', '♨️', 'iron', 'prasować'),
+  word('do-dishes', 'chores', '🍽️', 'do the dishes', 'zmywać'),
+  word('wake-up', 'chores', '⏰', 'wake up', 'budzić się'),
+  word('get-up', 'chores', '🛏️', 'get up', 'wstawać'),
+  word('get-dressed', 'chores', '👔', 'get dressed', 'ubierać się'),
+  word('undress', 'chores', '🧥', 'undress', 'rozbierać się'),
+  word('bathe', 'chores', '🛁', 'bathe', 'kąpać się'),
+  word('rest', 'chores', '😌', 'rest', 'odpoczywać'),
+  word('make-bed', 'chores', '🛏️', 'make the bed', 'ścielić łóżko'),
+  word('take-out-trash', 'chores', '🗑️', 'take out trash', 'wyrzucać śmieci'),
+  word('water-plants', 'chores', '🪴', 'water plants', 'podlewać'),
+  word('vacuum', 'chores', '🌀', 'vacuum', 'odkurzać'),
+  word('go-shopping', 'chores', '🛍️', 'shop', 'robić zakupy'),
+
   word('happy', 'descriptions', '😊', 'happy', 'szczęśliwy'),
   word('sad', 'descriptions', '😢', 'sad', 'smutny'),
   word('angry', 'descriptions', '😠', 'angry', 'wściekły'),
@@ -571,6 +767,10 @@ export const words: Word[] = [
   word('surprised', 'descriptions', '😲', 'surprised', 'zaskoczony'),
   word('good', 'descriptions', '👍', 'good', 'dobry'),
   word('bad', 'descriptions', '👎', 'bad', 'zły'),
+  word('bored', 'descriptions', '😑', 'bored', 'znudzony'),
+  word('calm', 'descriptions', '🧘', 'calm', 'spokojny'),
+  word('proud', 'descriptions', '🦚', 'proud', 'dumny'),
+
   word('hot', 'size', '🥵', 'hot', 'gorący'),
   word('cold', 'size', '🥶', 'cold', 'zimny'),
   word('new', 'size', '🆕', 'new', 'nowy'),
@@ -586,6 +786,86 @@ export const words: Word[] = [
   word('left', 'size', '⬅️', 'left', 'lewy'),
   word('right', 'size', '➡️', 'right', 'prawy'),
   word('free', 'size', '🆓', 'free', 'wolny'),
+
+  word('red', 'colors', '🔴', 'red', 'czerwony'),
+  word('blue', 'colors', '🔵', 'blue', 'niebieski'),
+  word('green', 'colors', '🟢', 'green', 'zielony'),
+  word('yellow', 'colors', '🟡', 'yellow', 'żółty'),
+  word('black', 'colors', '⚫', 'black', 'czarny'),
+  word('white', 'colors', '⚪', 'white', 'biały'),
+  word('orange-adj', 'colors', '🟠', 'orange', 'pomarańczowy'),
+  word('pink', 'colors', '🩷', 'pink', 'różowy'),
+  word('purple', 'colors', '🟣', 'purple', 'fioletowy'),
+  word('brown', 'colors', '🟤', 'brown', 'brązowy'),
+  word('gray', 'colors', '⬜', 'gray', 'szary'),
+  word('gold', 'colors', '🥇', 'gold', 'złoty'),
+  word('silver', 'colors', '🥈', 'silver', 'srebrny'),
+  word('beige', 'colors', '🏜️', 'beige', 'beżowy'),
+  word('navy', 'colors', '🔷', 'navy', 'granatowy'),
+
+  word('big', 'looks', '🔲', 'big', 'duży'),
+  word('small', 'looks', '🔹', 'small', 'mały'),
+  word('tall', 'looks', '📏', 'tall', 'wysoki'),
+  word('short', 'looks', '📐', 'short', 'niski'),
+  word('young', 'looks', '🌱', 'young', 'młody'),
+  word('beautiful', 'looks', '✨', 'beautiful', 'piękny'),
+  word('ugly', 'looks', '🥴', 'ugly', 'brzydki'),
+  word('clean-adj', 'looks', '✨', 'clean', 'czysty'),
+  word('dirty', 'looks', '🧽', 'dirty', 'brudny'),
+  word('rich', 'looks', '💰', 'rich', 'bogaty'),
+  word('poor', 'looks', '🪙', 'poor', 'biedny'),
+  word('thick', 'looks', '📘', 'thick', 'gruby'),
+  word('thin', 'looks', '📏', 'thin', 'chudy'),
+  word('soft', 'looks', '🧸', 'soft', 'miękki'),
+  word('hard', 'looks', '🪨', 'hard', 'twardy'),
+
+  word('quickly', 'manner', '⚡', 'quickly', 'szybko'),
+  word('slowly', 'manner', '🐌', 'slowly', 'wolno'),
+  word('well', 'manner', '👍', 'well', 'dobrze'),
+  word('badly', 'manner', '👎', 'badly', 'źle'),
+  word('loudly', 'manner', '📢', 'loudly', 'głośno'),
+  word('quietly', 'manner', '🤫', 'quietly', 'cicho'),
+  word('easily', 'manner', '✌️', 'easily', 'łatwo'),
+  word('hard-adv', 'manner', '🧱', 'with difficulty', 'trudno'),
+  word('together', 'manner', '👥', 'together', 'razem'),
+  word('carefully', 'manner', '👀', 'carefully', 'ostrożnie'),
+  word('suddenly', 'manner', '💥', 'suddenly', 'nagle'),
+  word('exactly', 'manner', '🎯', 'exactly', 'dokładnie'),
+  word('normally', 'manner', '🙂', 'normally', 'normalnie'),
+  word('calmly', 'manner', '🍃', 'calmly', 'spokojnie'),
+  word('happily', 'manner', '😄', 'happily', 'wesoło'),
+
+  word('today', 'timing', '📅', 'today', 'dziś'),
+  word('tomorrow', 'timing', '🌅', 'tomorrow', 'jutro'),
+  word('yesterday', 'timing', '⏪', 'yesterday', 'wczoraj'),
+  word('often', 'timing', '🔁', 'often', 'często'),
+  word('rarely', 'timing', '🌵', 'rarely', 'rzadko'),
+  word('always', 'timing', '♾️', 'always', 'zawsze'),
+  word('never', 'timing', '🚫', 'never', 'nigdy'),
+  word('soon', 'timing', '⏩', 'soon', 'wkrótce'),
+  word('later', 'timing', '🕒', 'later', 'później'),
+  word('early', 'timing', '🌄', 'early', 'wcześnie'),
+  word('late', 'timing', '🌙', 'late', 'późno'),
+  word('sometimes', 'timing', '🎲', 'sometimes', 'czasem'),
+  word('usually', 'timing', '📌', 'usually', 'zwykle'),
+  word('recently', 'timing', '🆕', 'recently', 'niedawno'),
+  word('immediately', 'timing', '🚨', 'immediately', 'natychmiast'),
+
+  word('a-bit', 'degree', '🤏', 'a bit', 'trochę'),
+  word('almost', 'degree', '⌛', 'almost', 'prawie'),
+  word('quite', 'degree', '✅', 'quite', 'całkiem'),
+  word('too', 'degree', '⚠️', 'too', 'zbyt'),
+  word('more', 'degree', '📈', 'more', 'bardziej'),
+  word('less', 'degree', '📉', 'less', 'mniej'),
+  word('especially', 'degree', '⭐', 'especially', 'szczególnie'),
+  word('completely', 'degree', '💯', 'completely', 'całkowicie'),
+  word('really', 'degree', '❗', 'really', 'naprawdę'),
+  word('rather', 'degree', '🤔', 'rather', 'raczej'),
+  word('slightly', 'degree', '〰️', 'slightly', 'nieco'),
+  word('significantly', 'degree', '📊', 'significantly', 'znacznie'),
+  word('at-all', 'degree', '🛑', 'at all', 'wcale'),
+  word('absolutely', 'degree', '🆗', 'absolutely', 'absolutnie'),
+  word('enough', 'degree', '⚖️', 'enough', 'wystarczająco'),
 ]
 
 export function getLanguage(code: LangCode): LanguageOption {
@@ -602,6 +882,14 @@ export function getCategory(id: CategoryId): Category {
 
 export function wordsInCategory(id: CategoryId): Word[] {
   return words.filter((item) => item.category === id)
+}
+
+export function categoriesInGroup(group: CategoryGroupId): Category[] {
+  return categories.filter((category) => category.group === group)
+}
+
+export function isSheetCategory(id: CategoryId): boolean {
+  return getCategory(id).kind === 'sheet'
 }
 
 export function isLangCode(value: string): value is LangCode {
