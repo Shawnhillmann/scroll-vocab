@@ -134,7 +134,6 @@ let spellingReplayWordId = ''
 let spellingReplayStep = 0
 let payoffStep: 'none' | 'ask' | 'answer' | 'done' = 'none'
 let payoffTimer = 0
-let cardReplayTimer = 0
 
 prefetchVoices()
 
@@ -520,7 +519,6 @@ function goHome(): void {
   window.clearTimeout(revealTimer)
   window.clearTimeout(learnSpokenTimer)
   window.clearTimeout(payoffTimer)
-  window.clearTimeout(cardReplayTimer)
   learnSpokenGen += 1
   learnGeneration += 1
   payoffStep = 'none'
@@ -649,7 +647,6 @@ function bindFeed(): void {
       if (effectiveMode() !== 'learn' && !card?.classList.contains('answered')) return
       unlockSpeech()
       if (effectiveMode() === 'learn') {
-        cancelCardReplay()
         const revealed = card?.classList.contains('is-revealed')
         if (!revealed) {
           revealLearnCard(index, true)
@@ -703,7 +700,6 @@ function bindFeed(): void {
       if (!card?.classList.contains('is-revealed')) return
       if (payoffStep === 'ask' || payoffStep === 'answer') return
       if (exampleWaiting || card.classList.contains('speaking')) return
-      cancelCardReplay()
       replaySpelling(index)
     })
   })
@@ -1074,7 +1070,6 @@ function startLearnHook(index: number): void {
   payoffStep = 'none'
   skipCurrentRing = null
   window.clearTimeout(payoffTimer)
-  window.clearTimeout(cardReplayTimer)
   stopSpeech()
   resetRevealRings()
   feed.querySelectorAll('.card-learn').forEach((card) => clearLearnExamples(card))
@@ -1314,7 +1309,6 @@ function showExample(index: number, step: number): void {
     item.innerHTML = `<p class="example-pl">${highlightTerms(example.pl, [word.forms[settings.learning]])}</p><p class="example-en">${highlightTerms(example.en, [word.forms[settings.learning]])}</p>`
     item.addEventListener('click', (event) => {
       event.stopPropagation()
-      cancelCardReplay()
       replayExample(item, example.pl)
     })
     box.append(item)
@@ -1443,25 +1437,7 @@ function completeRecall(index: number, offerGen: number): void {
   examplesDone = true
   const hint = card.querySelector('.hint')
   if (hint) hint.textContent = 'Read the sentences · swipe up'
-  scheduleCardReplay(index)
   scheduleLearnDone(index, offerGen)
-}
-
-function cancelCardReplay(): void {
-  window.clearTimeout(cardReplayTimer)
-}
-
-function scheduleCardReplay(index: number): void {
-  window.clearTimeout(cardReplayTimer)
-  if (effectiveMode() !== 'learn') return
-  const generation = learnGeneration
-  const spokenGen = learnSpokenGen
-  cardReplayTimer = window.setTimeout(() => {
-    if (generation !== learnGeneration || spokenGen !== learnSpokenGen) return
-    if (activeIndex !== index || payoffStep !== 'done') return
-    if (learnDoneShown || !learnDone.hidden) return
-    startLearnHook(index)
-  }, 3000)
 }
 
 function speakPayoffAnswer(index: number): void {
