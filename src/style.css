@@ -491,15 +491,6 @@ button {
   text-transform: uppercase;
 }
 
-.hint {
-  position: absolute;
-  bottom: calc(28px + env(safe-area-inset-bottom));
-  color: rgba(246, 239, 228, 0.55);
-  font-size: 0.8rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
 .topbar {
   pointer-events: none;
   position: absolute;

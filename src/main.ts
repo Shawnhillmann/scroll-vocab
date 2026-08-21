@@ -848,7 +848,6 @@ function sheetCardMarkup(sheet: ConjugationSheet, index: number): string {
       <p class="learn sheet-title">${escapeHtml(title)}</p>
       <p class="native sheet-subtitle">${escapeHtml(subtitle)}</p>
       <div class="sheet-table">${rows}</div>
-      <p class="hint">Tap a form to hear it · swipe up</p>
     </article>
   `
 }
@@ -907,16 +906,6 @@ function cardMarkup(word: Word, index: number, pool: Word[]): string {
   const mode = effectiveMode()
   const quiz = mode !== 'learn'
   const blank = mode === 'blank' ? blankPromptFor(word, index) : null
-  const hint =
-    mode === 'learn'
-      ? settings.sounds.reveal
-        ? 'Watch · word coming'
-        : 'Tap emoji to replay · swipe up'
-      : mode === 'choice'
-        ? 'Pick the word'
-        : mode === 'blank'
-          ? 'Pick or type the missing word · tap sentence for English'
-          : 'Type the word · accents optional'
 
   const choiceUi = `<div class="quiz-options">
           ${choiceWords(word, pool)
@@ -957,7 +946,6 @@ function cardMarkup(word: Word, index: number, pool: Word[]): string {
       <p class="blank-gloss" data-blank-gloss hidden>${escapeHtml(blank.gloss)}</p>
       <p class="learn" data-learn hidden></p>
       ${quizUi}
-      <p class="hint">${hint}</p>
     </article>
   `
   }
@@ -992,7 +980,6 @@ function cardMarkup(word: Word, index: number, pool: Word[]): string {
       </button>
       ${prompt}
       ${quizUi}
-      <p class="hint">${hint}</p>
     </article>
   `
   }
@@ -1000,7 +987,6 @@ function cardMarkup(word: Word, index: number, pool: Word[]): string {
   return `
     <article class="card card-learn${settings.sounds.reveal ? '' : ' is-revealed'}" data-index="${index}" data-answer="${answer}"${settings.sounds.reveal ? ' data-beat="hook"' : ' data-beat="reveal"'} style="background:${word.tint}">
       ${prompt}
-      <p class="hint">${hint}</p>
     </article>
   `
 }
@@ -1127,9 +1113,6 @@ function gradeCard(card: HTMLElement, given: string): void {
 
   const gloss = card.querySelector<HTMLElement>('[data-blank-gloss]')
   if (gloss) gloss.hidden = false
-
-  const hint = card.querySelector('.hint')
-  if (hint) hint.textContent = correct ? 'Nice · swipe up' : 'Swipe up for the next word'
 
   card.querySelectorAll<HTMLButtonElement>('.quiz-option').forEach((option) => {
     option.disabled = true
@@ -1376,8 +1359,6 @@ function startLearnHook(index: number): void {
       const learn = card.querySelector<HTMLElement>('[data-learn]')
       learn?.classList.remove('is-blurred')
       learn?.removeAttribute('aria-hidden')
-      const hint = card.querySelector('.hint')
-      if (hint) hint.textContent = 'Tap emoji to replay · swipe up'
     })
     speakWord(index, false, 'examples')
     return
@@ -1391,8 +1372,6 @@ function startLearnHook(index: number): void {
       learn.classList.add('is-blurred')
       learn.setAttribute('aria-hidden', 'true')
     }
-    const hint = card.querySelector('.hint')
-    if (hint) hint.textContent = 'Watch · word coming'
   })
 
   const card = feed.querySelector(`[data-index="${index}"]`)
@@ -1452,12 +1431,6 @@ function revealLearnCard(index: number, force = false): void {
   if (learn) {
     learn.classList.remove('is-blurred')
     learn.removeAttribute('aria-hidden')
-  }
-  const hint = card.querySelector('.hint')
-  if (hint) {
-    hint.textContent = word.examples.length
-      ? 'Examples coming · tap word to spell'
-      : 'Tap emoji to replay · tap word to spell'
   }
   window.clearTimeout(speakTimer)
   speakTimer = window.setTimeout(() => {
@@ -1564,9 +1537,6 @@ function queueExample(index: number, step: number): void {
   const generation = learnGeneration
   const durationMs = settings.sounds.voice ? exampleRingMs(example.pl, step) : step === 0 ? 850 : 620
 
-  const hint = card?.querySelector('.hint')
-  if (hint) hint.textContent = step === 0 ? 'First example · tap to skip' : 'Next example · tap to skip'
-
   setLearnBeat(card, 'example')
 
   if (!card) {
@@ -1666,9 +1636,6 @@ function startPayoff(index: number): void {
     restoreLearnWord(learn, word.forms[settings.learning])
   }
 
-  const hint = card.querySelector('.hint')
-  if (hint) hint.textContent = 'Quick recall · tap to skip'
-
   const generation = learnGeneration
   const durationMs = settings.sounds.voice ? recallRingMs(question) : 1400
 
@@ -1741,8 +1708,6 @@ function completeRecall(index: number, offerGen: number): void {
 
   payoffStep = 'done'
   examplesDone = true
-  const hint = card.querySelector('.hint')
-  if (hint) hint.textContent = 'Tap sentences for English · swipe up'
   scheduleLearnDone(index, offerGen)
 }
 
