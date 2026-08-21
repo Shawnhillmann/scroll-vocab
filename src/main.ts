@@ -778,6 +778,16 @@ function bindFeed(): void {
     })
   })
 
+  feed.querySelectorAll<HTMLElement>('[data-blank-sentence]').forEach((sentence) => {
+    sentence.addEventListener('click', (event) => {
+      event.stopPropagation()
+      const card = sentence.closest<HTMLElement>('.card-blank')
+      const gloss = card?.querySelector<HTMLElement>('[data-blank-gloss]')
+      if (!gloss) return
+      gloss.hidden = false
+    })
+  })
+
   feed.querySelectorAll<HTMLElement>('.card-learn [data-learn]').forEach((learn, index) => {
     learn.addEventListener('click', (event) => {
       event.stopPropagation()
@@ -905,7 +915,7 @@ function cardMarkup(word: Word, index: number, pool: Word[]): string {
       : mode === 'choice'
         ? 'Pick the word'
         : mode === 'blank'
-          ? 'Pick the missing word'
+          ? 'Pick or type the missing word · tap sentence for English'
           : 'Type the word · accents optional'
 
   const choiceUi = `<div class="quiz-options">
@@ -925,7 +935,15 @@ function cardMarkup(word: Word, index: number, pool: Word[]): string {
           <p class="type-feedback"></p>`
 
   const quizUi =
-    mode === 'choice' || mode === 'blank' ? choiceUi : mode === 'type' ? typeUi : ''
+    mode === 'choice'
+      ? choiceUi
+      : mode === 'blank'
+        ? `${choiceUi}
+          <p class="blank-or">or type it</p>
+          ${typeUi}`
+        : mode === 'type'
+          ? typeUi
+          : ''
 
   if (mode === 'blank' && blank) {
     return `
@@ -933,8 +951,10 @@ function cardMarkup(word: Word, index: number, pool: Word[]): string {
       <button class="emoji-hit" type="button" aria-label="Word prompt">
         <span class="emoji">${word.emoji}</span>
       </button>
-      <p class="blank-sentence" data-blank-sentence>${blank.displayHtml}</p>
-      <p class="blank-gloss" data-blank-gloss>${escapeHtml(blank.gloss)}</p>
+      <button class="blank-sentence" type="button" data-blank-sentence aria-label="Show English translation">
+        ${blank.displayHtml}
+      </button>
+      <p class="blank-gloss" data-blank-gloss hidden>${escapeHtml(blank.gloss)}</p>
       <p class="learn" data-learn hidden></p>
       ${quizUi}
       <p class="hint">${hint}</p>
@@ -1076,7 +1096,10 @@ function choiceWords(word: Word, pool: Word[]): string[] {
 function gradeCard(card: HTMLElement, given: string): void {
   const index = Number(card.dataset.index)
   const expected = card.dataset.answer ?? ''
-  const correct = normalizeAnswer(given) === normalizeAnswer(expected)
+  const blankForm = card.dataset.blankForm ?? ''
+  const correct =
+    normalizeAnswer(given) === normalizeAnswer(expected) ||
+    (Boolean(blankForm) && normalizeAnswer(given) === normalizeAnswer(blankForm))
   const word = feedWords[index]
   if (!word) return
 
@@ -1095,12 +1118,15 @@ function gradeCard(card: HTMLElement, given: string): void {
 
   const blankSentence = card.querySelector<HTMLElement>('[data-blank-sentence]')
   if (blankSentence) {
-    const filled = card.dataset.blankForm || expected
+    const filled = blankForm || expected
     blankSentence.innerHTML = blankSentence.innerHTML.replace(
       /<span class="blank-slot">____<\/span>/,
       `<span class="word-hit">${escapeHtml(filled)}</span>`,
     )
   }
+
+  const gloss = card.querySelector<HTMLElement>('[data-blank-gloss]')
+  if (gloss) gloss.hidden = false
 
   const hint = card.querySelector('.hint')
   if (hint) hint.textContent = correct ? 'Nice · swipe up' : 'Swipe up for the next word'

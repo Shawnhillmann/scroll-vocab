@@ -802,13 +802,22 @@ button {
 }
 
 .blank-sentence {
+  appearance: none;
+  display: block;
   margin: 16px 0 0;
+  padding: 0;
+  border: 0;
   width: min(100%, 22rem);
+  background: transparent;
+  color: inherit;
+  font: inherit;
   font-size: clamp(1.2rem, 5vw, 1.55rem);
   font-weight: 600;
   letter-spacing: -0.02em;
   line-height: 1.35;
   text-align: center;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .blank-slot {
@@ -830,8 +839,25 @@ button {
   text-align: center;
 }
 
+.blank-gloss[hidden] {
+  display: none;
+}
+
+.blank-or {
+  margin: 14px 0 0;
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
 .card-blank .type-form {
-  margin-top: 18px;
+  margin-top: 10px;
+}
+
+.card-blank .quiz-options {
+  margin-top: 16px;
 }
 
 .quiz-options {

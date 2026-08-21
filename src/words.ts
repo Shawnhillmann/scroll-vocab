@@ -194,7 +194,7 @@ export const modes: Mode[] = [
   {
     id: 'blank',
     label: 'Fill in the blank',
-    detail: 'Pick the missing word in a sentence',
+    detail: 'Pick or type the missing word in a sentence',
     emoji: '✏️',
   },
   { id: 'type', label: 'Typing', detail: 'Type the word yourself', emoji: '⌨️' },
