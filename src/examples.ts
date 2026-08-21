@@ -2551,6 +2551,316 @@ const EXAMPLES: Record<string, Example[]> = {
     x('Zmieniam termin.', 'I change the appointment.'),
     x('Jaki jest termin?', 'What is the appointment time?'),
   ],
+  cup: [
+    x('Piję z kubka.', 'I drink from a cup.'),
+    x('Podaj mi kubek.', 'Pass me a cup.'),
+    x('Kubek jest gorący.', 'The cup is hot.'),
+  ],
+  pot: [
+    x('Zupa gotuje się w garnku.', 'The soup is cooking in the pot.'),
+    x('Duży garnek na makaron.', 'A big pot for pasta.'),
+    x('Myję garnek.', 'I wash the pot.'),
+  ],
+  oven: [
+    x('Pizza jest w piekarniku.', 'The pizza is in the oven.'),
+    x('Włączam piekarnik.', 'I turn on the oven.'),
+    x('Piekarnik jest gorący.', 'The oven is hot.'),
+  ],
+  fridge: [
+    x('Mleko jest w lodówce.', 'The milk is in the fridge.'),
+    x('Otwieram lodówkę.', 'I open the fridge.'),
+    x('Lodówka jest pełna.', 'The fridge is full.'),
+  ],
+  sink: [
+    x('Zlew jest w kuchni.', 'The sink is in the kitchen.'),
+    x('Myję ręce w zlewie.', 'I wash my hands in the sink.'),
+    x('Zlew jest brudny.', 'The sink is dirty.'),
+  ],
+  napkin: [
+    x('Proszę o serwetkę.', 'A napkin, please.'),
+    x('Serwetka na stole.', 'A napkin on the table.'),
+    x('Bierzę serwetkę.', 'I take a napkin.'),
+  ],
+  table: [
+    x('Kładę książkę na stole.', 'I put the book on the table.'),
+    x('Stół jest drewniany.', 'The table is wooden.'),
+    x('Siadamy przy stole.', 'We sit at the table.'),
+  ],
+  desk: [
+    x('Pracuję przy biurku.', 'I work at the desk.'),
+    x('Biurko stoi przy oknie.', 'The desk stands by the window.'),
+    x('Na biurku leży laptop.', 'A laptop lies on the desk.'),
+  ],
+  shelf: [
+    x('Książki są na półce.', 'The books are on the shelf.'),
+    x('Wieszam półkę.', 'I hang a shelf.'),
+    x('Półka jest pełna.', 'The shelf is full.'),
+  ],
+  wardrobe: [
+    x('Ubrania są w szafie.', 'The clothes are in the wardrobe.'),
+    x('Otwieram szafę.', 'I open the wardrobe.'),
+    x('Duża szafa w pokoju.', 'A big wardrobe in the room.'),
+  ],
+  drawer: [
+    x('Klucze są w szufladzie.', 'The keys are in the drawer.'),
+    x('Otwieram szufladę.', 'I open the drawer.'),
+    x('Szuflada się zacina.', 'The drawer sticks.'),
+  ],
+  carpet: [
+    x('Dywan leży na podłodze.', 'The carpet lies on the floor.'),
+    x('Odkurzam dywan.', 'I vacuum the carpet.'),
+    x('Miękki dywan.', 'A soft carpet.'),
+  ],
+  curtain: [
+    x('Zasłony są niebieskie.', 'The curtains are blue.'),
+    x('Zasłaniam okno.', 'I close the curtain.'),
+    x('Odsuń zasłonę.', 'Pull back the curtain.'),
+  ],
+  stairs: [
+    x('Wchodzę po schodach.', 'I go up the stairs.'),
+    x('Schody są strome.', 'The stairs are steep.'),
+    x('Schody na piętro.', 'Stairs to the upper floor.'),
+  ],
+  wall: [
+    x('Obraz wisi na ścianie.', 'A picture hangs on the wall.'),
+    x('Ściana jest biała.', 'The wall is white.'),
+    x('Malujemy ścianę.', 'We paint the wall.'),
+  ],
+  pear: [
+    x('Jem gruszkę.', 'I eat a pear.'),
+    x('Gruszka jest słodka.', 'The pear is sweet.'),
+    x('Kupuję gruszki.', 'I buy pears.'),
+  ],
+  cherry: [
+    x('Wiśnie są czerwone.', 'The cherries are red.'),
+    x('Lubię wiśnie.', 'I like cherries.'),
+    x('Jem wiśnię.', 'I eat a cherry.'),
+  ],
+  watermelon: [
+    x('Arbuz jest soczysty.', 'The watermelon is juicy.'),
+    x('Kroję arbuza.', 'I cut a watermelon.'),
+    x('Latem jem arbuza.', 'In summer I eat watermelon.'),
+  ],
+  pineapple: [
+    x('Ananas jest słodki.', 'The pineapple is sweet.'),
+    x('Sok z ananasa.', 'Pineapple juice.'),
+    x('Kupuję ananasa.', 'I buy a pineapple.'),
+  ],
+  kiwi: [
+    x('Obieram kiwi.', 'I peel a kiwi.'),
+    x('Kiwi jest kwaśne.', 'The kiwi is sour.'),
+    x('Jem kiwi na śniadanie.', 'I eat kiwi for breakfast.'),
+  ],
+  plum: [
+    x('Śliwka jest fioletowa.', 'The plum is purple.'),
+    x('Lubię śliwki.', 'I like plums.'),
+    x('Dżem ze śliwek.', 'Plum jam.'),
+  ],
+  melon: [
+    x('Melon pachnie latem.', 'The melon smells like summer.'),
+    x('Kroję melona.', 'I cut a melon.'),
+    x('Słodki melon.', 'A sweet melon.'),
+  ],
+  raspberry: [
+    x('Maliny są słodkie.', 'Raspberries are sweet.'),
+    x('Zbieram maliny.', 'I pick raspberries.'),
+    x('Jogurt z malinami.', 'Yogurt with raspberries.'),
+  ],
+  soda: [
+    x('Piję napój gazowany.', 'I drink soda.'),
+    x('Napój gazowany jest zimny.', 'The soda is cold.'),
+    x('Nie piję dużo napoju gazowanego.', 'I do not drink much soda.'),
+  ],
+  hamster: [
+    x('Chomik biega w kołowrotku.', 'The hamster runs in a wheel.'),
+    x('Mam chomika.', 'I have a hamster.'),
+    x('Chomik je ziarna.', 'The hamster eats seeds.'),
+  ],
+  snail: [
+    x('Ślimak idzie wolno.', 'The snail moves slowly.'),
+    x('Widzę ślimaka po deszczu.', 'I see a snail after the rain.'),
+    x('Ślimak ma muszlę.', 'The snail has a shell.'),
+  ],
+  jellyfish: [
+    x('Meduza pływa w morzu.', 'The jellyfish swims in the sea.'),
+    x('Uważaj na meduzę.', 'Watch out for the jellyfish.'),
+    x('Meduza jest przezroczysta.', 'The jellyfish is transparent.'),
+  ],
+  scooter: [
+    x('Jeżdżę na hulajnodze.', 'I ride a scooter.'),
+    x('Hulajnoga jest szybka.', 'The scooter is fast.'),
+    x('Dziecko ma hulajnogę.', 'The child has a scooter.'),
+  ],
+  passport: [
+    x('Pokaż paszport.', 'Show your passport.'),
+    x('Paszport jest w torbie.', 'The passport is in the bag.'),
+    x('Potrzebuję nowego paszportu.', 'I need a new passport.'),
+  ],
+  luggage: [
+    x('Bagaż jest ciężki.', 'The luggage is heavy.'),
+    x('Oddaję bagaż.', 'I check in the luggage.'),
+    x('Szukam swojego bagażu.', 'I look for my luggage.'),
+  ],
+  tourist: [
+    x('Turysta robi zdjęcia.', 'The tourist takes photos.'),
+    x('Wiele turystów w mieście.', 'Many tourists in the city.'),
+    x('Jestem tu turystą.', 'I am a tourist here.'),
+  ],
+  ferry: [
+    x('Prom płynie na wyspę.', 'The ferry goes to the island.'),
+    x('Czekamy na prom.', 'We wait for the ferry.'),
+    x('Bilet na prom.', 'A ferry ticket.'),
+  ],
+  visa: [
+    x('Potrzebuję wizy.', 'I need a visa.'),
+    x('Wiza jest w paszporcie.', 'The visa is in the passport.'),
+    x('Składam wniosek o wizę.', 'I apply for a visa.'),
+  ],
+  platform: [
+    x('Pociąg na peronie trzecim.', 'The train on platform three.'),
+    x('Czekam na peronie.', 'I wait on the platform.'),
+    x('Peron jest pełny.', 'The platform is full.'),
+  ],
+  hostel: [
+    x('Śpię w hostelu.', 'I sleep in a hostel.'),
+    x('Hostel jest tani.', 'The hostel is cheap.'),
+    x('Rezerwuję hostel.', 'I book a hostel.'),
+  ],
+  brother: [
+    x('Mój brat jest starszy.', 'My brother is older.'),
+    x('Mam brata.', 'I have a brother.'),
+    x('Brat mieszka w Krakowie.', 'My brother lives in Krakow.'),
+  ],
+  sister: [
+    x('Moja siostra uczy się.', 'My sister is studying.'),
+    x('Mam siostrę.', 'I have a sister.'),
+    x('Siostra dzwoni do mnie.', 'My sister calls me.'),
+  ],
+  teacher: [
+    x('Nauczyciel tłumaczy lekcję.', 'The teacher explains the lesson.'),
+    x('Lubię mojego nauczyciela.', 'I like my teacher.'),
+    x('Nauczyciel zadaje pracę.', 'The teacher assigns homework.'),
+  ],
+  nurse: [
+    x('Pielęgniarka pomaga pacjentowi.', 'The nurse helps the patient.'),
+    x('Pielęgniarka jest miła.', 'The nurse is kind.'),
+    x('Pracuję jako pielęgniarka.', 'I work as a nurse.'),
+  ],
+  chef: [
+    x('Kucharz gotuje obiad.', 'The chef cooks lunch.'),
+    x('Kucharz jest w kuchni.', 'The chef is in the kitchen.'),
+    x('Dobry kucharz.', 'A good chef.'),
+  ],
+  driver: [
+    x('Kierowca prowadzi autobus.', 'The driver drives the bus.'),
+    x('Kierowca taksówki czeka.', 'The taxi driver is waiting.'),
+    x('Jestem kierowcą.', 'I am a driver.'),
+  ],
+  hair: [
+    x('Mam długie włosy.', 'I have long hair.'),
+    x('Myję włosy.', 'I wash my hair.'),
+    x('Włosy są mokre.', 'The hair is wet.'),
+  ],
+  cheek: [
+    x('Całuję w policzek.', 'I kiss on the cheek.'),
+    x('Policzek jest czerwony.', 'The cheek is red.'),
+    x('Uśmiech na policzku.', 'A dimple on the cheek.'),
+  ],
+  chin: [
+    x('Broda jest ostra.', 'The chin is sharp.'),
+    x('Dotykam brody.', 'I touch my chin.'),
+    x('Zarost na brodzie.', 'Stubble on the chin.'),
+  ],
+  eyebrow: [
+    x('Unosi brew.', 'He raises an eyebrow.'),
+    x('Brew jest ciemna.', 'The eyebrow is dark.'),
+    x('Maluję brwi.', 'I do my eyebrows.'),
+  ],
+  forehead: [
+    x('Mam gorączkę na czole.', 'I have a fever on my forehead.'),
+    x('Czoło jest spocone.', 'The forehead is sweaty.'),
+    x('Całuję w czoło.', 'I kiss on the forehead.'),
+  ],
+  stomach: [
+    x('Boli mnie brzuch.', 'My stomach hurts.'),
+    x('Brzuch jest pełny.', 'The stomach is full.'),
+    x('Leżę na brzuchu.', 'I lie on my stomach.'),
+  ],
+  back: [
+    x('Boli mnie plecy.', 'My back hurts.'),
+    x('Leżę na plecach.', 'I lie on my back.'),
+    x('Proste plecy.', 'A straight back.'),
+  ],
+  shoulder: [
+    x('Torebka na barku.', 'A bag on the shoulder.'),
+    x('Boli mnie bark.', 'My shoulder hurts.'),
+    x('Kładę rękę na barku.', 'I put a hand on the shoulder.'),
+  ],
+  knee: [
+    x('Kolano jest obolałe.', 'The knee is sore.'),
+    x('Upadam na kolano.', 'I fall on my knee.'),
+    x('Zginam kolano.', 'I bend my knee.'),
+  ],
+  neck: [
+    x('Szalik na szyi.', 'A scarf on the neck.'),
+    x('Boli mnie szyja.', 'My neck hurts.'),
+    x('Długa szyja.', 'A long neck.'),
+  ],
+  skin: [
+    x('Skóra jest sucha.', 'The skin is dry.'),
+    x('Krem na skórę.', 'Cream for the skin.'),
+    x('Jasna skóra.', 'Fair skin.'),
+  ],
+  pill: [
+    x('Biorę tabletkę.', 'I take a pill.'),
+    x('Tabletka na ból.', 'A pill for pain.'),
+    x('Połykam tabletkę.', 'I swallow a pill.'),
+  ],
+  'cold-illness': [
+    x('Mam przeziębienie.', 'I have a cold.'),
+    x('Przeziębienie mija powoli.', 'The cold passes slowly.'),
+    x('Łapię przeziębienie.', 'I catch a cold.'),
+  ],
+  allergy: [
+    x('Mam alergię na pyłki.', 'I have a pollen allergy.'),
+    x('Alergia powoduje katar.', 'The allergy causes a runny nose.'),
+    x('Test na alergię.', 'An allergy test.'),
+  ],
+  vitamin: [
+    x('Biorę witaminę C.', 'I take vitamin C.'),
+    x('Witamina jest w owocach.', 'Vitamin is in fruit.'),
+    x('Potrzebuję witamin.', 'I need vitamins.'),
+  ],
+  jacket: [
+    x('Zakładam kurtkę.', 'I put on a jacket.'),
+    x('Kurtka jest ciepła.', 'The jacket is warm.'),
+    x('Kurtka wisi w szafie.', 'The jacket hangs in the wardrobe.'),
+  ],
+  necklace: [
+    x('Nosi naszyjnik.', 'She wears a necklace.'),
+    x('Złoty naszyjnik.', 'A gold necklace.'),
+    x('Kupuję naszyjnik.', 'I buy a necklace.'),
+  ],
+  belt: [
+    x('Pasek do spodni.', 'A belt for the pants.'),
+    x('Zapinam pasek.', 'I buckle the belt.'),
+    x('Skórzany pasek.', 'A leather belt.'),
+  ],
+  currently: [
+    x('Obecnie mieszkam w Warszawie.', 'I currently live in Warsaw.'),
+    x('Obecnie uczę się polskiego.', 'I am currently learning Polish.'),
+    x('Obecnie jestem zajęty.', 'I am currently busy.'),
+  ],
+  previously: [
+    x('Poprzednio mieszkałem w Krakowie.', 'I previously lived in Krakow.'),
+    x('Poprzednio nie umiałem tego.', 'Previously I could not do this.'),
+    x('Jak poprzednio, dziękuję.', 'As previously, thank you.'),
+  ],
+  eventually: [
+    x('W końcu zrozumiałem.', 'I eventually understood.'),
+    x('W końcu wróciliśmy do domu.', 'We eventually returned home.'),
+    x('W końcu pada deszcz.', 'Eventually it rains.'),
+  ],
   'core-nie': [
     x('Nie chcę kawy.', 'I do not want coffee.'),
     x('To nie jest trudne.', 'This is not hard.'),
