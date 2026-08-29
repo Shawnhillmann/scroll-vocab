@@ -410,6 +410,23 @@ button {
   margin-top: 6px;
 }
 
+.pronounce {
+  margin: 6px 0 0;
+  color: rgba(246, 239, 228, 0.72);
+  font-size: clamp(0.92rem, 3.4vw, 1.1rem);
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  line-height: 1.3;
+  text-align: center;
+}
+
+.card-learn[data-beat='hook'] .pronounce,
+.card-learn[data-beat='recall'] .pronounce,
+.card-learn .learn.is-blurred ~ .pronounce {
+  opacity: 0;
+  pointer-events: none;
+}
+
 .card-learn[data-beat='hook'] .learn-gloss,
 .card-learn[data-beat='reveal'] .learn-gloss,
 .card-learn[data-beat='example'] .learn-gloss,

@@ -22,6 +22,7 @@ import {
   sheetsInCategory,
   type ConjugationSheet,
 } from './conjugations.ts'
+import { pronunciationGuide } from './syllables.ts'
 import { prefetchVoices, speak, stopSpeech, unlockSpeech } from './speech.ts'
 import {
   applySoundPrefs,
@@ -1011,6 +1012,7 @@ function cardMarkup(word: Word, index: number, pool: Word[]): string {
            <span class="emoji">${word.emoji}</span>
          </button>
          <p class="learn is-blurred" data-learn aria-hidden="true">${highlightLearnWord(word.forms[settings.learning])}</p>
+         <p class="pronounce" data-pronounce aria-hidden="true">${escapeHtml(pronunciationGuide(word.forms[settings.learning]))}</p>
          <p class="native learn-gloss" data-native hidden>${native}</p>
          <div class="examples" data-examples></div>`
       : `<button class="emoji-hit" type="button" aria-label="Replay pronunciation">
@@ -1018,6 +1020,7 @@ function cardMarkup(word: Word, index: number, pool: Word[]): string {
            <span class="emoji">${word.emoji}</span>
          </button>
          <p class="learn" data-learn>${highlightLearnWord(word.forms[settings.learning])}</p>
+         <p class="pronounce" data-pronounce>${escapeHtml(pronunciationGuide(word.forms[settings.learning]))}</p>
          <p class="native learn-gloss" data-native>${native}</p>
          <div class="examples" data-examples></div>`
 
@@ -1839,11 +1842,13 @@ function refreshWords(): void {
     const word = feedWords[index]
     if (!word) return
     const learn = card.querySelector('[data-learn]')
+    const pronounce = card.querySelector<HTMLElement>('[data-pronounce]')
     const hook = card.querySelector<HTMLElement>('[data-hook]')
     const gloss = card.querySelector<HTMLElement>('[data-native]')
     if (learn && payoffStep !== 'done' && payoffStep !== 'answer') {
       learn.innerHTML = highlightLearnWord(word.forms[settings.learning])
     }
+    if (pronounce) pronounce.textContent = pronunciationGuide(word.forms[settings.learning])
     if (gloss) gloss.textContent = word.forms[settings.native]
     if (hook) {
       hook.hidden = !settings.sounds.ask
