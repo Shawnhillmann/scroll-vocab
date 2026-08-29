@@ -119,6 +119,88 @@ button {
     calc(72px + env(safe-area-inset-bottom));
 }
 
+.card-recap {
+  justify-content: flex-start;
+  align-items: stretch;
+  padding: calc(72px + env(safe-area-inset-top)) 14px
+    calc(24px + env(safe-area-inset-bottom));
+  overflow-y: auto;
+}
+
+.recap-sheet {
+  width: min(100%, 26rem);
+  margin: 0 auto;
+  padding: 12px 12px 14px;
+  border-radius: 16px;
+  background: rgba(10, 8, 6, 0.34);
+  border: 1px solid rgba(246, 239, 228, 0.1);
+}
+
+.recap-kicker {
+  margin: 0 0 8px;
+  color: var(--muted);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  text-align: center;
+}
+
+.recap-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  column-gap: 10px;
+  row-gap: 3px;
+}
+
+.recap-row {
+  display: grid;
+  grid-template-columns: 1.1rem minmax(0, 1fr);
+  grid-template-rows: auto auto;
+  column-gap: 5px;
+  align-items: baseline;
+  min-width: 0;
+  padding: 3px 2px;
+}
+
+.recap-emoji {
+  grid-row: 1 / span 2;
+  align-self: center;
+  font-size: 0.85rem;
+  line-height: 1;
+}
+
+.recap-learning {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+.recap-native {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--muted);
+  font-size: 0.68rem;
+  letter-spacing: 0.01em;
+  line-height: 1.2;
+}
+
+@media (max-width: 360px) {
+  .recap-list {
+    grid-template-columns: 1fr;
+  }
+}
+
 .emoji-hit {
   position: relative;
   width: min(72vw, 280px);

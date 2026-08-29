@@ -698,6 +698,28 @@ function renderFeed(startId?: string): void {
 
   feedSheets = []
   const pool = activePool()
+
+  if (effectiveMode() === 'recap') {
+    feedWords = pool
+    activeIndex = 0
+    swipeSoundIndex = 0
+
+    if (!feedWords.length) {
+      feed.innerHTML = `
+        <article class="card empty-card">
+          <p class="learn">No words here</p>
+          <p class="native">Pick another category to keep going.</p>
+        </article>
+      `
+      refreshChrome()
+      return
+    }
+
+    feed.innerHTML = recapCardMarkup(feedWords)
+    refreshChrome()
+    return
+  }
+
   feedWords = effectiveMode() === 'learn' ? pool : shuffled(pool)
   const startIndex = Math.max(
     0,
@@ -823,6 +845,33 @@ function bindFeed(): void {
   )
 
   feed.querySelectorAll('.card').forEach((card) => observer?.observe(card))
+}
+
+function recapCardMarkup(pool: Word[]): string {
+  const category = settings.category ? getCategory(settings.category) : null
+  const title = category?.label ?? 'Category'
+  const rows = pool
+    .map((word) => {
+      const learning = escapeHtml(word.forms[settings.learning])
+      const native = escapeHtml(word.forms[settings.native])
+      return `
+        <li class="recap-row">
+          <span class="recap-emoji" aria-hidden="true">${word.emoji}</span>
+          <span class="recap-learning">${learning}</span>
+          <span class="recap-native">${native}</span>
+        </li>
+      `
+    })
+    .join('')
+
+  return `
+    <article class="card card-recap is-active" data-index="0" style="background:${category?.tint ?? '#16120e'}">
+      <div class="recap-sheet">
+        <p class="recap-kicker">${escapeHtml(title)} · ${pool.length}</p>
+        <ul class="recap-list">${rows}</ul>
+      </div>
+    </article>
+  `
 }
 
 function sheetCardMarkup(sheet: ConjugationSheet, index: number): string {
@@ -1812,9 +1861,11 @@ function refreshChrome(): void {
   const category = settings.category ? getCategory(settings.category) : null
   const score = feed.querySelectorAll('.card.is-correct').length
   progress.textContent = category
-    ? effectiveMode() === 'learn' || category.kind === 'sheet'
-      ? `${category.emoji} ${count ? Math.min(activeIndex + 1, count) : 0} / ${count}`
-      : `${category.emoji} ${count ? Math.min(activeIndex + 1, count) : 0} / ${count} · ${score}✓`
+    ? effectiveMode() === 'recap'
+      ? `${category.emoji} Recap · ${count}`
+      : effectiveMode() === 'learn' || category.kind === 'sheet'
+        ? `${category.emoji} ${count ? Math.min(activeIndex + 1, count) : 0} / ${count}`
+        : `${category.emoji} ${count ? Math.min(activeIndex + 1, count) : 0} / ${count} · ${score}✓`
     : '—'
 
   startBtn.disabled = !settings.category || count === 0
@@ -1826,7 +1877,9 @@ function refreshChrome(): void {
         ? 'Open cheat sheets'
         : settings.mode === 'learn'
           ? 'Start scrolling'
-          : 'Start quiz'
+          : settings.mode === 'recap'
+            ? 'Open recap'
+            : 'Start quiz'
 
   document.querySelectorAll('[data-lang-role]').forEach((root) => {
     const role = (root as HTMLElement).dataset.langRole

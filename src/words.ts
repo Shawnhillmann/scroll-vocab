@@ -48,7 +48,7 @@ export type CategoryId =
   | 'conj-present'
   | 'conj-past'
   | 'conj-future'
-export type ModeId = 'learn' | 'choice' | 'type' | 'blank'
+export type ModeId = 'learn' | 'choice' | 'type' | 'blank' | 'recap'
 
 export type Mode = {
   id: ModeId
@@ -198,6 +198,12 @@ export const modes: Mode[] = [
     emoji: '✏️',
   },
   { id: 'type', label: 'Typing', detail: 'Type the word yourself', emoji: '⌨️' },
+  {
+    id: 'recap',
+    label: 'Recap',
+    detail: 'See every word and translation in one list',
+    emoji: '📋',
+  },
 ]
 
 function tintFor(category: CategoryId): string {
