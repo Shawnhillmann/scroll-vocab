@@ -23,6 +23,7 @@ import {
   type ConjugationSheet,
 } from './conjugations.ts'
 import { pronunciationGuide } from './syllables.ts'
+import { exampleText, type Example } from './examples.ts'
 import { prefetchVoices, speak, stopSpeech, unlockSpeech } from './speech.ts'
 import {
   applySoundPrefs,
@@ -1084,14 +1085,13 @@ type BlankPrompt = {
 
 function blankPromptFor(word: Word, index: number): BlankPrompt {
   const learning = word.forms[settings.learning]
-  const useLearningPl = settings.learning === 'pl'
   const examples = word.examples.length
     ? shuffled(word.examples)
-    : [{ pl: learning, en: word.forms.en }]
+    : ([{ pl: word.forms.pl, en: word.forms.en }] satisfies Example[])
 
   for (const example of examples) {
-    const sentence = useLearningPl ? example.pl : example.en
-    const gloss = useLearningPl ? example.en : example.pl
+    const sentence = exampleText(example, settings.learning)
+    const gloss = exampleText(example, settings.native)
     const hit = findTermInSentence(sentence, learning)
     if (!hit) continue
     const before = escapeHtml(sentence.slice(0, hit.start))
@@ -1110,7 +1110,7 @@ function blankPromptFor(word: Word, index: number): BlankPrompt {
   return {
     answer: learning,
     speak: learning,
-    gloss: seed ? (useLearningPl ? seed.en : seed.pl) : gloss,
+    gloss: seed ? exampleText(seed, settings.native) : gloss,
     displayHtml: `<span class="blank-slot">____</span>`,
   }
 }
@@ -1584,8 +1584,8 @@ function replayExample(item: HTMLElement, text: string): void {
   item.classList.add('is-speaking')
   window.setTimeout(() => item.classList.remove('is-speaking'), 900)
 
-  const polish = getLanguage('pl')
-  speak(text, polish.bcp47, polish.voiceLangs)
+  const learning = getLanguage(settings.learning)
+  speak(text, learning.bcp47, learning.voiceLangs)
 }
 
 function spellingText(text: string): string {
@@ -1647,7 +1647,11 @@ function queueExample(index: number, step: number): void {
   exampleWaiting = true
   examplesDone = false
   const generation = learnGeneration
-  const durationMs = settings.sounds.voice ? exampleRingMs(example.pl, step) : step === 0 ? 850 : 620
+  const durationMs = settings.sounds.voice
+    ? exampleRingMs(exampleText(example, settings.learning), step)
+    : step === 0
+      ? 850
+      : 620
 
   setLearnBeat(card, 'example')
 
@@ -1676,6 +1680,9 @@ function showExample(index: number, step: number): void {
   nextExample = step + 1
   finishRevealRing(card)
   card.classList.add('has-examples')
+
+  const learningLine = exampleText(example, settings.learning)
+  const nativeLine = exampleText(example, settings.native)
   const item = card.querySelector<HTMLButtonElement>(`[data-example-slot="${step}"]`)
   if (item) {
     item.classList.remove('is-slot')
@@ -1683,12 +1690,12 @@ function showExample(index: number, step: number): void {
     item.removeAttribute('aria-hidden')
     item.tabIndex = 0
     item.setAttribute('aria-label', 'Replay sentence')
-    item.innerHTML = `<p class="example-pl">${highlightTerms(example.pl, [word.forms[settings.learning]])}</p><p class="example-en">${highlightTerms(example.en, [word.forms[settings.learning]])}</p>`
+    item.innerHTML = `<p class="example-learning">${highlightTerms(learningLine, [word.forms[settings.learning]])}</p><p class="example-gloss">${highlightTerms(nativeLine, [word.forms[settings.native]])}</p>`
     item.onclick = (event) => {
       event.stopPropagation()
-      const gloss = item.querySelector<HTMLElement>('.example-en')
+      const gloss = item.querySelector<HTMLElement>('.example-gloss')
       gloss?.classList.add('is-shown')
-      replayExample(item, example.pl)
+      replayExample(item, learningLine)
     }
   }
 
@@ -1715,9 +1722,9 @@ function showExample(index: number, step: number): void {
   card.classList.add('speaking')
   window.setTimeout(() => card.classList.remove('speaking'), 900)
 
-  const polish = getLanguage('pl')
-  const fallbackMs = Math.min(7200, Math.max(3200, 1600 + example.pl.length * 160))
-  speak(example.pl, polish.bcp47, polish.voiceLangs, afterSpoken)
+  const learning = getLanguage(settings.learning)
+  const fallbackMs = Math.min(7200, Math.max(3200, 1600 + learningLine.length * 160))
+  speak(learningLine, learning.bcp47, learning.voiceLangs, afterSpoken)
   learnSpokenTimer = window.setTimeout(afterSpoken, fallbackMs)
 }
 

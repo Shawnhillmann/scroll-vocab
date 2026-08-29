@@ -3,6 +3,11 @@ export type Example = {
   en: string
 }
 
+/** Sentence text for a language code. Extend when new languages are added. */
+export function exampleText(example: Example, code: keyof Example): string {
+  return example[code] ?? example.en
+}
+
 const x = (pl: string, en: string): Example => ({ pl, en })
 
 const EXAMPLES: Record<string, Example[]> = {

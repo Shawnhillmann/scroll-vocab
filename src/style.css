@@ -458,7 +458,7 @@ button {
   background: rgba(232, 238, 246, 0.08);
 }
 
-.example-pl {
+.example-learning {
   margin: 0;
   font-size: clamp(0.88rem, 3.4vw, 1.02rem);
   font-weight: 600;
@@ -466,7 +466,7 @@ button {
   line-height: 1.25;
 }
 
-.example-en {
+.example-gloss {
   margin: 2px 0 0;
   color: var(--muted);
   font-size: 0.74rem;
@@ -477,7 +477,7 @@ button {
   transition: opacity 420ms var(--learn-ease);
 }
 
-.example-en.is-shown {
+.example-gloss.is-shown {
   opacity: 1;
 }
 
@@ -1310,7 +1310,7 @@ button {
   .hook-line,
   .examples,
   .example,
-  .example-en,
+  .example-gloss,
   .pronounce,
   .card-learn,
   .card-learn::before,
