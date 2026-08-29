@@ -872,7 +872,7 @@ function recapCardMarkup(pool: Word[]): string {
     .join('')
 
   return `
-    <article class="card card-recap is-active" data-index="0" style="background:${category?.tint ?? '#16120e'}">
+    <article class="card card-recap is-active" data-index="0">
       <div class="recap-sheet">
         <p class="recap-kicker">${escapeHtml(title)} · ${pool.length}</p>
         <ul class="recap-list">${rows}</ul>
@@ -898,7 +898,7 @@ function sheetCardMarkup(sheet: ConjugationSheet, index: number): string {
     .join('')
 
   return `
-    <article class="card card-sheet" data-index="${index}" data-sheet="${sheet.id}" style="background:${getCategory(sheet.category).tint}">
+    <article class="card card-sheet" data-index="${index}" data-sheet="${sheet.id}">
       <p class="sheet-kicker">${escapeHtml(tense)} · cheat sheet</p>
       <p class="emoji sheet-emoji">${sheet.emoji}</p>
       <p class="learn sheet-title">${escapeHtml(title)}</p>
@@ -992,7 +992,7 @@ function cardMarkup(word: Word, index: number, pool: Word[]): string {
 
   if (mode === 'blank' && blank) {
     return `
-    <article class="card card-quiz card-blank" data-index="${index}" data-answer="${answer}" data-blank-form="${escapeHtml(blank.answer)}" data-speak="${escapeHtml(blank.speak)}" style="background:${word.tint}">
+    <article class="card card-quiz card-blank" data-index="${index}" data-answer="${answer}" data-blank-form="${escapeHtml(blank.answer)}" data-speak="${escapeHtml(blank.speak)}">
       <button class="emoji-hit" type="button" aria-label="Word prompt">
         <span class="emoji">${word.emoji}</span>
       </button>
@@ -1019,20 +1019,20 @@ function cardMarkup(word: Word, index: number, pool: Word[]): string {
          </button>
          <p class="learn is-blurred" data-learn aria-hidden="true">${highlightLearnWord(word.forms[settings.learning])}</p>
          <p class="pronounce" data-pronounce aria-hidden="true">${escapeHtml(pronunciationGuide(word.forms[settings.learning]))}</p>
-         <p class="native learn-gloss" data-native hidden>${native}</p>
-         <div class="examples" data-examples></div>`
+         <p class="native learn-gloss" data-native>${native}</p>
+         ${learnExamplesMarkup(word)}`
       : `<button class="emoji-hit" type="button" aria-label="Replay pronunciation">
            ${revealRingMarkup()}
            <span class="emoji">${word.emoji}</span>
          </button>
          <p class="learn" data-learn>${highlightLearnWord(word.forms[settings.learning])}</p>
          <p class="pronounce" data-pronounce>${escapeHtml(pronunciationGuide(word.forms[settings.learning]))}</p>
-         <p class="native learn-gloss" data-native>${native}</p>
-         <div class="examples" data-examples></div>`
+         <p class="native learn-gloss is-shown" data-native>${native}</p>
+         ${learnExamplesMarkup(word)}`
 
   if (quiz) {
     return `
-    <article class="card card-quiz" data-index="${index}" data-answer="${answer}" style="background:${word.tint}">
+    <article class="card card-quiz" data-index="${index}" data-answer="${answer}">
       <button class="emoji-hit" type="button" aria-label="Word prompt">
         <span class="emoji">${word.emoji}</span>
       </button>
@@ -1043,7 +1043,7 @@ function cardMarkup(word: Word, index: number, pool: Word[]): string {
   }
 
   return `
-    <article class="card card-learn${settings.sounds.reveal ? '' : ' is-revealed'}" data-index="${index}" data-answer="${answer}"${settings.sounds.reveal ? ' data-beat="hook"' : ' data-beat="reveal"'} style="background:${word.tint}">
+    <article class="card card-learn${settings.sounds.reveal ? '' : ' is-revealed'}" data-index="${index}" data-answer="${answer}"${settings.sounds.reveal ? ' data-beat="hook"' : ' data-beat="reveal"'}>
       ${prompt}
     </article>
   `
@@ -1280,6 +1280,28 @@ function recallRingMs(text: string): number {
   return Math.min(3400, Math.max(1900, 1050 + text.length * 58))
 }
 
+function learnExamplesMarkup(word: Word): string {
+  const examples = word.examples.slice(0, 3)
+  if (!examples.length) return '<div class="examples" data-examples></div>'
+  const slots = examples
+    .map(
+      (_, slot) =>
+        `<button type="button" class="example is-slot" data-example-slot="${slot}" aria-hidden="true" tabindex="-1"></button>`,
+    )
+    .join('')
+  return `<div class="examples" data-examples>${slots}</div>`
+}
+
+function resetExampleSlots(card: Element): void {
+  card.querySelectorAll<HTMLButtonElement>('[data-example-slot]').forEach((slot) => {
+    slot.className = 'example is-slot'
+    slot.replaceChildren()
+    slot.setAttribute('aria-hidden', 'true')
+    slot.tabIndex = -1
+    slot.onclick = null
+  })
+}
+
 type LearnBeat = 'hook' | 'reveal' | 'example' | 'recall' | 'payoff' | 'explore'
 
 function setLearnBeat(card: Element | null, beat: LearnBeat): void {
@@ -1497,14 +1519,13 @@ function revealLearnCard(index: number, force = false): void {
   speakTimer = window.setTimeout(() => {
     if (activeIndex !== index) return
     speakWord(index, force, 'examples')
-  }, 220)
+  }, 650)
 }
 
 function clearLearnExamples(card: Element): void {
   card.classList.remove('has-examples', 'is-recall', 'is-recall-revealed', 'is-revealed', 'speaking')
   setLearnBeat(card, 'hook')
-  const box = card.querySelector('[data-examples]')
-  if (box) box.replaceChildren()
+  resetExampleSlots(card)
   const learn = card.querySelector<HTMLElement>('[data-learn]')
   if (learn) {
     learn.hidden = false
@@ -1512,9 +1533,14 @@ function clearLearnExamples(card: Element): void {
     learn.setAttribute('aria-hidden', 'true')
   }
   const gloss = card.querySelector<HTMLElement>('[data-native]')
-  if (gloss) gloss.hidden = true
+  if (gloss) {
+    gloss.classList.remove('is-shown')
+    gloss.removeAttribute('hidden')
+  }
   const pronounce = card.querySelector<HTMLElement>('[data-pronounce]')
   if (pronounce) pronounce.setAttribute('aria-hidden', 'true')
+  const hook = card.querySelector<HTMLElement>('[data-hook]')
+  if (hook) hook.hidden = !settings.sounds.ask
 }
 
 function restoreLearnWord(learn: HTMLElement, text: string): void {
@@ -1629,20 +1655,20 @@ function showExample(index: number, step: number): void {
   nextExample = step + 1
   finishRevealRing(card)
   card.classList.add('has-examples')
-  const box = card.querySelector('[data-examples]')
-  if (box) {
-    const item = document.createElement('button')
-    item.type = 'button'
-    item.className = 'example'
+  const item = card.querySelector<HTMLButtonElement>(`[data-example-slot="${step}"]`)
+  if (item) {
+    item.classList.remove('is-slot')
+    item.classList.add('is-visible')
+    item.removeAttribute('aria-hidden')
+    item.tabIndex = 0
     item.setAttribute('aria-label', 'Replay sentence')
-    item.innerHTML = `<p class="example-pl">${highlightTerms(example.pl, [word.forms[settings.learning]])}</p><p class="example-en" hidden>${highlightTerms(example.en, [word.forms[settings.learning]])}</p>`
-    item.addEventListener('click', (event) => {
+    item.innerHTML = `<p class="example-pl">${highlightTerms(example.pl, [word.forms[settings.learning]])}</p><p class="example-en">${highlightTerms(example.en, [word.forms[settings.learning]])}</p>`
+    item.onclick = (event) => {
       event.stopPropagation()
       const gloss = item.querySelector<HTMLElement>('.example-en')
-      if (gloss) gloss.hidden = false
+      gloss?.classList.add('is-shown')
       replayExample(item, example.pl)
-    })
-    box.append(item)
+    }
   }
 
   const generation = learnGeneration
@@ -1656,15 +1682,15 @@ function showExample(index: number, step: number): void {
       if (offerGen !== learnSpokenGen) return
       if (generation !== learnGeneration || activeIndex !== index) return
       queueExample(index, step + 1)
-    }, 720)
+    }, 1100)
   }
 
   if (!settings.sounds.voice) {
-    learnSpokenTimer = window.setTimeout(afterSpoken, step === 0 ? 480 : 360)
+    learnSpokenTimer = window.setTimeout(afterSpoken, step === 0 ? 900 : 750)
     return
   }
 
-  feed.querySelectorAll('.card').forEach((item) => item.classList.remove('speaking'))
+  feed.querySelectorAll('.card').forEach((el) => el.classList.remove('speaking'))
   card.classList.add('speaking')
   window.setTimeout(() => card.classList.remove('speaking'), 900)
 
@@ -1737,7 +1763,8 @@ function showPayoffAnswer(index: number): void {
   }
   card.querySelector<HTMLElement>('[data-pronounce]')?.removeAttribute('aria-hidden')
   if (gloss) {
-    gloss.hidden = false
+    gloss.classList.add('is-shown')
+    gloss.removeAttribute('hidden')
     gloss.textContent = word.forms[settings.native]
   }
   setLearnBeat(card, 'payoff')
@@ -1745,7 +1772,7 @@ function showPayoffAnswer(index: number): void {
   payoffTimer = window.setTimeout(() => {
     if (payoffStep !== 'answer' || activeIndex !== index) return
     speakPayoffAnswer(index)
-  }, 420)
+  }, 700)
 }
 
 function completeRecall(index: number, offerGen: number): void {
@@ -1756,7 +1783,6 @@ function completeRecall(index: number, offerGen: number): void {
   setLearnBeat(card, word.examples.length > 0 ? 'explore' : 'reveal')
 
   const learn = card.querySelector<HTMLElement>('[data-learn]')
-  const hook = card.querySelector<HTMLElement>('[data-hook]')
   const gloss = card.querySelector<HTMLElement>('[data-native]')
   const answer = word.forms[settings.learning]
 
@@ -1766,11 +1792,9 @@ function completeRecall(index: number, offerGen: number): void {
     showLearnCheckmark(learn, answer)
   }
   if (gloss) {
-    gloss.hidden = false
+    gloss.classList.add('is-shown')
+    gloss.removeAttribute('hidden')
     gloss.textContent = word.forms[settings.native]
-  }
-  if (hook) {
-    hook.hidden = true
   }
 
   payoffStep = 'done'
@@ -1835,7 +1859,7 @@ function speakWord(index: number, force = false, then: 'examples' | 'none' = 'no
   }
 
   if (!force && !settings.sounds.voice) {
-    const wait = then === 'examples' ? 220 : index >= feedWords.length - 1 ? 700 : 0
+    const wait = then === 'examples' ? 700 : index >= feedWords.length - 1 ? 700 : 0
     if (wait) learnSpokenTimer = window.setTimeout(afterSpoken, wait)
     else afterSpoken()
     return

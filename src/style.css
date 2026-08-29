@@ -1,13 +1,19 @@
 :root {
-  --ink: #f6efe4;
-  --muted: #cbbfb0;
+  --ink: #e8eef6;
+  --muted: #9aabbd;
   --accent: #e08a4a;
-  --line: rgba(246, 239, 228, 0.12);
+  --line: rgba(232, 238, 246, 0.12);
+  --bg: #12161e;
+  --bg-deep: #0c1016;
+  --bg-elevated: #1a2030;
   --scroll-thumb: rgba(224, 138, 74, 0.75);
   --scroll-thumb-hover: #e08a4a;
-  --scroll-track: rgba(246, 239, 228, 0.06);
+  --scroll-track: rgba(232, 238, 246, 0.06);
   --sans: 'Manrope', system-ui, sans-serif;
   --serif: 'Fraunces', Georgia, serif;
+  --learn-ease: cubic-bezier(0.4, 0, 0.2, 1);
+  --learn-duration: 1100ms;
+  --learn-duration-slow: 1300ms;
   color-scheme: dark;
   scrollbar-width: thin;
   scrollbar-color: var(--scroll-thumb) var(--scroll-track);
@@ -23,7 +29,7 @@ html,
 body {
   margin: 0;
   height: 100%;
-  background: #0e0c0a;
+  background: var(--bg-deep);
   color: var(--ink);
   font-family: var(--sans);
   overflow: hidden;
@@ -50,7 +56,10 @@ button {
   width: 100%;
   height: 100dvh;
   overflow: hidden;
-  background: #16120e;
+  background:
+    radial-gradient(ellipse 120% 80% at 50% -10%, rgba(70, 110, 160, 0.16), transparent 55%),
+    radial-gradient(ellipse 90% 60% at 80% 100%, rgba(40, 70, 110, 0.12), transparent 50%),
+    var(--bg);
 }
 
 @media (min-width: 540px) {
@@ -117,6 +126,7 @@ button {
   align-items: center;
   padding: calc(88px + env(safe-area-inset-top)) 24px
     calc(72px + env(safe-area-inset-bottom));
+  background: transparent;
 }
 
 .card-recap {
@@ -132,7 +142,7 @@ button {
   margin: 0 auto;
   padding: 12px 12px 14px;
   border-radius: 16px;
-  background: rgba(10, 8, 6, 0.34);
+  background: rgba(12, 16, 24, 0.4);
   border: 1px solid rgba(246, 239, 228, 0.1);
 }
 
@@ -210,7 +220,7 @@ button {
   border-radius: 50%;
   background: radial-gradient(circle at 50% 42%, rgba(255, 255, 255, 0.1), transparent 64%);
   cursor: pointer;
-  transition: width 700ms cubic-bezier(0.22, 1, 0.36, 1);
+  transition: width var(--learn-duration-slow) var(--learn-ease);
 }
 
 .emoji {
@@ -219,13 +229,11 @@ button {
   font-size: clamp(7rem, 28vw, 9.5rem);
   line-height: 1;
   transform: scale(1);
-  transition:
-    transform 220ms cubic-bezier(0.22, 1, 0.36, 1),
-    font-size 700ms cubic-bezier(0.22, 1, 0.36, 1);
+  transition: transform 320ms var(--learn-ease);
 }
 
 .card.speaking .emoji {
-  transform: scale(1.08);
+  transform: scale(1.05);
 }
 
 .reveal-ring {
@@ -281,16 +289,15 @@ button {
 .hook-line {
   margin: 0;
   color: var(--ink);
-  font-size: clamp(1.02rem, 4.4vw, 1.28rem);
+  font-size: clamp(0.98rem, 3.8vw, 1.18rem);
   font-weight: 600;
   letter-spacing: -0.02em;
   line-height: 1.35;
   text-align: center;
-  max-width: min(100%, 22rem);
+  width: 100%;
+  max-width: min(100%, 20rem);
   overflow-wrap: anywhere;
-  transition:
-    font-size 640ms cubic-bezier(0.22, 1, 0.36, 1),
-    letter-spacing 640ms cubic-bezier(0.22, 1, 0.36, 1);
+  transition: opacity var(--learn-duration) var(--learn-ease);
 }
 
 .hook-native {
@@ -308,13 +315,11 @@ button {
   display: flex;
   flex-direction: column;
   align-items: center;
-  margin: 0 0 22px;
-  max-height: 7.5rem;
-  overflow: hidden;
-  transition:
-    margin 640ms cubic-bezier(0.22, 1, 0.36, 1),
-    opacity 480ms cubic-bezier(0.22, 1, 0.36, 1),
-    max-height 640ms cubic-bezier(0.22, 1, 0.36, 1);
+  justify-content: flex-end;
+  width: min(100%, 20rem);
+  min-height: 4.2rem;
+  margin: 0 0 16px;
+  transition: opacity var(--learn-duration) var(--learn-ease);
 }
 
 .card-learn {
@@ -322,33 +327,53 @@ button {
   padding-top: calc(88px + env(safe-area-inset-top));
 }
 
+.card-learn .emoji-hit {
+  width: min(46vw, 176px);
+  flex-shrink: 0;
+}
+
+.card-learn .emoji {
+  font-size: clamp(4.4rem, 16vw, 5.8rem);
+  transition: transform 360ms var(--learn-ease);
+}
+
+.card-learn.speaking .emoji {
+  transform: scale(1.04);
+}
+
 .card-learn::before,
 .card-learn::after {
   content: '';
-  flex-grow: 1;
   flex-shrink: 1;
   flex-basis: 0%;
   min-height: 0;
   pointer-events: none;
-  transition: flex-grow 640ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Top-anchor content so new sentences only eat bottom space. */
+.card-learn::before {
+  flex-grow: 0;
+  flex-basis: clamp(12px, 4vh, 36px);
+}
+
+.card-learn::after {
+  flex-grow: 1;
 }
 
 .card-learn .learn {
-  margin-top: 18px;
+  margin-top: 14px;
+  min-height: 1.15em;
+  font-size: clamp(1.85rem, 6.5vw, 2.55rem);
   transition:
-    filter 560ms cubic-bezier(0.22, 1, 0.36, 1),
-    opacity 480ms cubic-bezier(0.22, 1, 0.36, 1),
-    transform 560ms cubic-bezier(0.22, 1, 0.36, 1),
-    font-size 640ms cubic-bezier(0.22, 1, 0.36, 1),
-    margin-top 640ms cubic-bezier(0.22, 1, 0.36, 1);
+    filter var(--learn-duration) var(--learn-ease),
+    opacity var(--learn-duration) var(--learn-ease);
 }
 
-/* Never show the word until the card has revealed it. */
+/* Never show the word until the card has revealed it — keep layout space. */
 .card-learn:not(.is-revealed) .learn,
 .card-learn:not(.is-revealed) .pronounce {
   opacity: 0 !important;
   filter: none !important;
-  transform: none !important;
   visibility: hidden;
   pointer-events: none;
   transition: none !important;
@@ -357,7 +382,6 @@ button {
 .card-learn.is-active .learn.is-blurred {
   filter: blur(24px);
   opacity: 0.38;
-  transform: scale(1.05);
   user-select: none;
   pointer-events: none;
 }
@@ -365,7 +389,6 @@ button {
 .card-learn.is-revealed .learn {
   filter: blur(0);
   opacity: 1;
-  transform: scale(1);
   visibility: visible;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
@@ -374,28 +397,17 @@ button {
 .examples {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  width: min(100%, 22rem);
-  margin: 0;
-  max-height: 28rem;
-  opacity: 1;
-  transform: translateY(0);
-  transition:
-    opacity 480ms cubic-bezier(0.22, 1, 0.36, 1),
-    max-height 640ms cubic-bezier(0.22, 1, 0.36, 1),
-    margin 480ms cubic-bezier(0.22, 1, 0.36, 1),
-    transform 480ms cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-.examples:not(:empty) {
+  gap: 8px;
+  width: min(100%, 20rem);
   margin-top: 12px;
+  transition: opacity var(--learn-duration) var(--learn-ease);
 }
 
 .example {
   appearance: none;
   width: 100%;
   margin: 0;
-  padding: 8px 10px;
+  padding: 6px 8px;
   border: 0;
   border-radius: 14px;
   background: transparent;
@@ -404,12 +416,29 @@ button {
   text-align: center;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
-  animation: example-in 640ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  min-height: 3.1rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--learn-duration) var(--learn-ease);
+}
+
+.example.is-slot {
+  visibility: hidden;
+}
+
+.example.is-visible {
+  opacity: 1;
+  pointer-events: auto;
+  visibility: visible;
 }
 
 .example:active,
 .example.is-speaking {
-  background: rgba(246, 239, 228, 0.08);
+  background: rgba(232, 238, 246, 0.08);
 }
 
 .example-pl {
@@ -426,31 +455,41 @@ button {
   font-size: 0.84rem;
   letter-spacing: 0.02em;
   line-height: 1.35;
+  min-height: 1.2em;
+  opacity: 0;
+  transition: opacity 420ms var(--learn-ease);
 }
 
-.example-en[hidden] {
-  display: none;
+.example-en.is-shown {
+  opacity: 1;
 }
 
 .learn-gloss {
   margin-top: 6px;
+  min-height: 1.35em;
+  opacity: 0;
+  transition: opacity var(--learn-duration) var(--learn-ease);
+}
+
+.learn-gloss.is-shown {
+  opacity: 1;
 }
 
 .pronounce {
   margin: 6px 0 0;
+  min-height: 1.3em;
   color: rgba(246, 239, 228, 0.72);
   font-size: clamp(0.92rem, 3.4vw, 1.1rem);
   font-weight: 500;
   letter-spacing: 0.06em;
   line-height: 1.3;
   text-align: center;
-  transition:
-    opacity 420ms cubic-bezier(0.22, 1, 0.36, 1),
-    visibility 420ms;
+  transition: opacity var(--learn-duration) var(--learn-ease);
 }
 
 .card-learn.is-revealed .pronounce {
   visibility: visible;
+  opacity: 1;
 }
 
 .card-learn[data-beat='hook'] .pronounce,
@@ -465,19 +504,14 @@ button {
 .card-learn[data-beat='reveal'] .learn-gloss,
 .card-learn[data-beat='example'] .learn-gloss,
 .card-learn[data-beat='recall'] .learn-gloss {
-  display: none;
+  opacity: 0;
+  pointer-events: none;
 }
 
 .card-learn[data-beat='payoff'] .learn-gloss,
-.card-learn[data-beat='explore'] .learn-gloss {
-  display: block;
+.card-learn[data-beat='explore'] .learn-gloss,
+.learn-gloss.is-shown {
   opacity: 1;
-  animation: example-in 480ms cubic-bezier(0.22, 1, 0.36, 1) both;
-}
-
-.card-learn[data-beat='explore'] .learn {
-  margin-top: 10px;
-  font-size: clamp(2rem, 7vw, 2.8rem);
 }
 
 .word-hit {
@@ -489,119 +523,64 @@ button {
   color: #ffc56d;
 }
 
-.card-learn[data-beat="hook"] .hook-line {
-  font-size: clamp(1.28rem, 5.6vw, 1.7rem);
-}
-
-.card-learn[data-beat="hook"] .emoji-hit {
-  width: min(56vw, 220px);
-}
-
-.card-learn[data-beat="hook"] .emoji {
-  font-size: clamp(5.2rem, 20vw, 7rem);
-}
-
-.card-learn[data-beat="hook"] .learn,
-.card-learn.is-active[data-beat="hook"] .learn.is-blurred {
+/* Beats only fade layers — layout slots stay put. */
+.card-learn[data-beat='hook'] .learn,
+.card-learn.is-active[data-beat='hook'] .learn.is-blurred {
   opacity: 0 !important;
   filter: none !important;
-  transform: none !important;
   visibility: hidden;
   pointer-events: none;
 }
 
-.card-learn[data-beat="reveal"] .hook {
+.card-learn[data-beat='reveal'] .hook {
   opacity: 0.42;
 }
 
-.card-learn[data-beat="reveal"] .hook-line {
-  font-size: clamp(0.92rem, 3.6vw, 1.08rem);
+/* Keep example slots collapsed until the example phase, then hold their height forever after. */
+.card-learn[data-beat='hook'] .examples,
+.card-learn[data-beat='reveal'] .examples {
+  margin-top: 0;
+  height: 0;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
 }
 
-.card-learn[data-beat="reveal"] .learn {
-  font-size: clamp(2.2rem, 8vw, 3.4rem);
-}
-
-.card-learn[data-beat="example"] .hook,
-.card-learn[data-beat="explore"] .hook,
+.card-learn[data-beat='example'] .hook,
+.card-learn[data-beat='explore'] .hook,
 .card-learn.has-examples .hook {
   opacity: 0;
   pointer-events: none;
-  margin-bottom: 0;
-  max-height: 0;
 }
 
-.card-learn[data-beat="example"] .emoji-hit,
-.card-learn[data-beat="explore"] .emoji-hit,
-.card-learn.has-examples .emoji-hit {
-  width: min(42vw, 168px);
-}
-
-.card-learn[data-beat="example"] .emoji,
-.card-learn[data-beat="explore"] .emoji,
-.card-learn.has-examples .emoji {
-  font-size: clamp(4.2rem, 16vw, 5.8rem);
-}
-
-.card-learn[data-beat="example"] .learn,
-.card-learn[data-beat="explore"] .learn,
-.card-learn.has-examples .learn {
-  margin-top: 10px;
-  font-size: clamp(1.7rem, 6vw, 2.4rem);
-}
-
-.card-learn[data-beat="example"]::before,
-.card-learn[data-beat="explore"]::before,
-.card-learn[data-beat="reveal"]::before,
-.card-learn.has-examples::before {
-  flex-grow: 0.12;
-}
-
-.card-learn[data-beat="example"]::after,
-.card-learn[data-beat="explore"]::after,
-.card-learn.has-examples::after {
-  flex-grow: 1.2;
-}
-
-.card-learn[data-beat="recall"] .examples,
-.card-learn[data-beat="payoff"] .examples {
+.card-learn[data-beat='recall'] .examples,
+.card-learn[data-beat='payoff'] .examples {
   opacity: 0;
-  max-height: 0;
-  margin: 0;
-  overflow: hidden;
   pointer-events: none;
-  transform: translateY(-8px);
 }
 
-.card-learn[data-beat="recall"] .hook-line {
-  font-size: clamp(1.12rem, 4.8vw, 1.45rem);
-  letter-spacing: 0.06em;
+.card-learn[data-beat='recall'] .hook-line {
+  letter-spacing: 0.04em;
   text-transform: uppercase;
 }
 
-.card-learn[data-beat="recall"] .learn,
-.card-learn.is-revealed[data-beat="recall"] .learn,
-.card-learn.is-active[data-beat="recall"] .learn.is-blurred {
+.card-learn[data-beat='recall'] .learn,
+.card-learn.is-revealed[data-beat='recall'] .learn,
+.card-learn.is-active[data-beat='recall'] .learn.is-blurred {
   opacity: 0 !important;
   filter: none !important;
-  transform: none !important;
   visibility: hidden;
   pointer-events: none;
 }
 
-.card-learn[data-beat="payoff"] .hook {
-  opacity: 0.38;
-  max-height: 7.5rem;
-  margin-bottom: 22px;
+.card-learn[data-beat='payoff'] .hook {
+  opacity: 0.4;
 }
 
-.card-learn[data-beat="payoff"] .learn {
+.card-learn[data-beat='payoff'] .learn {
   filter: blur(0);
   opacity: 1;
-  transform: scale(1);
   visibility: visible;
-  font-size: clamp(2.2rem, 8vw, 3.4rem);
-  margin-top: 18px;
 }
 
 .native {
@@ -633,7 +612,7 @@ button {
   padding: 0 12px;
   border: 1px solid var(--line);
   border-radius: 999px;
-  background: rgba(14, 12, 10, 0.42);
+  background: rgba(12, 16, 22, 0.42);
   backdrop-filter: blur(12px);
   font-size: 0.78rem;
   letter-spacing: 0.04em;
@@ -655,7 +634,7 @@ button {
   position: absolute;
   inset: 0;
   z-index: 5;
-  background: #16120e;
+  background: var(--bg);
   padding: calc(28px + env(safe-area-inset-top)) 24px
     calc(20px + env(safe-area-inset-bottom));
   display: flex;
@@ -823,7 +802,7 @@ button {
 }
 
 .empty-card {
-  background: #1c1814;
+  background: var(--bg-elevated);
 }
 
 .type-form {
@@ -1143,7 +1122,7 @@ button {
   display: grid;
   place-items: center;
   padding: 24px;
-  background: rgba(10, 8, 7, 0.72);
+  background: rgba(8, 12, 18, 0.72);
   backdrop-filter: blur(16px);
   animation: fade-in 0.35s ease;
 }
@@ -1156,7 +1135,7 @@ button {
   width: min(100%, 320px);
   padding: 32px 24px 24px;
   border-radius: 28px;
-  background: #201a14;
+  background: var(--bg-elevated);
   border: 1px solid var(--line);
   text-align: center;
   animation: rise-in 0.3s ease;
@@ -1216,6 +1195,12 @@ button {
   animation: rise-in 0.35s ease;
 }
 
+.card-learn.is-active .emoji,
+.card-learn.is-active .learn,
+.card-learn.is-active .native {
+  animation: none;
+}
+
 .card.is-correct .emoji {
   animation: yes-pop 0.32s ease;
 }
@@ -1223,7 +1208,7 @@ button {
 @keyframes payoff-pop {
   from {
     opacity: 0;
-    transform: scale(0.9) translateY(6px);
+    transform: scale(0.96) translateY(4px);
   }
   to {
     opacity: 1;
@@ -1234,7 +1219,7 @@ button {
 @keyframes example-in {
   from {
     opacity: 0;
-    transform: translateY(12px);
+    transform: translateY(6px);
   }
   to {
     opacity: 1;
@@ -1370,7 +1355,10 @@ button {
   .hook,
   .hook-line,
   .examples,
+  .example,
+  .example-en,
   .pronounce,
+  .learn-gloss,
   .card-learn,
   .card-learn::before,
   .card-learn::after,
