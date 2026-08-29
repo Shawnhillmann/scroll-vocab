@@ -725,6 +725,7 @@ function renderFeed(startId?: string): void {
     }
 
     feed.innerHTML = recapCardMarkup(feedWords)
+    bindRecapFeed()
     refreshChrome()
     return
   }
@@ -867,13 +868,16 @@ function recapCardMarkup(pool: Word[]): string {
   const title = category?.label ?? 'Category'
   const rows = pool
     .map((word) => {
-      const learning = escapeHtml(word.forms[settings.learning])
+      const form = word.forms[settings.learning]
+      const learning = escapeHtml(form)
       const native = escapeHtml(word.forms[settings.native])
       return `
-        <li class="recap-row">
-          <span class="recap-emoji" aria-hidden="true">${word.emoji}</span>
-          <span class="recap-learning">${learning}</span>
-          <span class="recap-native">${native}</span>
+        <li>
+          <button class="recap-row" type="button" data-form="${escapeHtml(form)}" aria-label="Hear ${learning}">
+            <span class="recap-emoji" aria-hidden="true">${word.emoji}</span>
+            <span class="recap-learning">${learning}</span>
+            <span class="recap-native">${native}</span>
+          </button>
         </li>
       `
     })
@@ -887,6 +891,22 @@ function recapCardMarkup(pool: Word[]): string {
       </div>
     </article>
   `
+}
+
+function bindRecapFeed(): void {
+  feed.querySelectorAll<HTMLElement>('.recap-row').forEach((row) => {
+    row.addEventListener('click', (event) => {
+      event.stopPropagation()
+      unlockSpeech()
+      const form = row.dataset.form
+      if (!form || !settings.sounds.voice) return
+      feed.querySelectorAll('.recap-row').forEach((item) => item.classList.remove('is-speaking'))
+      row.classList.add('is-speaking')
+      window.setTimeout(() => row.classList.remove('is-speaking'), 900)
+      const learning = getLanguage(settings.learning)
+      speak(form, learning.bcp47, learning.voiceLangs)
+    })
+  })
 }
 
 function sheetCardMarkup(sheet: ConjugationSheet, index: number): string {
