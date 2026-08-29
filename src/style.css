@@ -359,18 +359,17 @@ button {
 }
 
 .card-learn .learn {
-  margin-top: 8px;
-  min-height: 1.15em;
-  font-size: clamp(1.7rem, 6vw, 2.35rem);
+  margin-top: 6px;
+  min-height: 1.1em;
+  font-size: clamp(1.35rem, 5vw, 1.85rem);
   transition:
     filter var(--learn-duration) var(--learn-ease),
     opacity var(--learn-duration) var(--learn-ease);
 }
 
-/* Word trio: learning form, pronunciation, and native gloss stay in sync. */
+/* Learning word + pronunciation reveal together. */
 .card-learn:not(.is-revealed) .learn,
-.card-learn:not(.is-revealed) .pronounce,
-.card-learn:not(.is-revealed) .learn-gloss {
+.card-learn:not(.is-revealed) .pronounce {
   opacity: 0 !important;
   filter: none !important;
   visibility: hidden;
@@ -398,7 +397,7 @@ button {
   flex-direction: column;
   gap: 2px;
   width: min(100%, 20rem);
-  margin-top: 6px;
+  margin-top: 18px;
   transition: opacity var(--learn-duration) var(--learn-ease);
 }
 
@@ -466,33 +465,21 @@ button {
   opacity: 1;
 }
 
-.learn-gloss {
-  margin-top: 6px;
-  min-height: 1.35em;
-  opacity: 0;
-  visibility: hidden;
-  transition:
-    opacity var(--learn-duration) var(--learn-ease),
-    visibility var(--learn-duration);
-}
-
 .pronounce {
-  margin: 6px 0 0;
-  min-height: 1.3em;
+  margin: 4px 0 0;
+  min-height: 1.15em;
   color: rgba(232, 238, 246, 0.72);
-  font-size: clamp(0.92rem, 3.4vw, 1.1rem);
+  font-size: clamp(0.78rem, 2.8vw, 0.92rem);
   font-weight: 500;
-  letter-spacing: 0.06em;
-  line-height: 1.3;
+  letter-spacing: 0.05em;
+  line-height: 1.25;
   text-align: center;
   transition:
     opacity var(--learn-duration) var(--learn-ease),
     visibility var(--learn-duration);
 }
 
-.card-learn.is-revealed .pronounce,
-.card-learn.is-revealed .learn-gloss,
-.card-learn.is-revealed .learn-gloss.is-shown {
+.card-learn.is-revealed .pronounce {
   opacity: 1;
   visibility: visible;
 }
@@ -509,7 +496,6 @@ button {
 /* Beats only fade layers — layout slots stay put. */
 .card-learn[data-beat='hook'] .learn,
 .card-learn[data-beat='hook'] .pronounce,
-.card-learn[data-beat='hook'] .learn-gloss,
 .card-learn.is-active[data-beat='hook'] .learn.is-blurred {
   opacity: 0 !important;
   filter: none !important;
@@ -1310,7 +1296,6 @@ button {
   .example,
   .example-en,
   .pronounce,
-  .learn-gloss,
   .card-learn,
   .card-learn::before,
   .card-learn::after,

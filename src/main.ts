@@ -1027,7 +1027,6 @@ function cardMarkup(word: Word, index: number, pool: Word[]): string {
          </button>
          <p class="learn is-blurred" data-learn aria-hidden="true">${highlightLearnWord(word.forms[settings.learning])}</p>
          <p class="pronounce" data-pronounce aria-hidden="true">${escapeHtml(pronunciationGuide(word.forms[settings.learning]))}</p>
-         <p class="native learn-gloss" data-native>${native}</p>
          ${learnExamplesMarkup(word)}`
       : `<button class="emoji-hit" type="button" aria-label="Replay pronunciation">
            ${revealRingMarkup()}
@@ -1035,7 +1034,6 @@ function cardMarkup(word: Word, index: number, pool: Word[]): string {
          </button>
          <p class="learn" data-learn>${highlightLearnWord(word.forms[settings.learning])}</p>
          <p class="pronounce" data-pronounce>${escapeHtml(pronunciationGuide(word.forms[settings.learning]))}</p>
-         <p class="native learn-gloss is-shown" data-native>${native}</p>
          ${learnExamplesMarkup(word)}`
 
   if (quiz) {
@@ -1445,7 +1443,7 @@ function startLearnHook(index: number): void {
       card.classList.remove('speaking', 'is-waiting')
       setLearnBeat(card, 'reveal')
       const item = feedWords[Number((card as HTMLElement).dataset.index)]
-      if (item) showLearnWordTrio(card, item)
+      if (item) showLearnWordPair(card)
     })
     speakWord(index, false, 'examples')
     return
@@ -1503,7 +1501,7 @@ function startLearnHook(index: number): void {
   revealWhenRingCompletes(waitMs)
 }
 
-function showLearnWordTrio(card: Element, word: Word): void {
+function showLearnWordPair(card: Element): void {
   const learn = card.querySelector<HTMLElement>('[data-learn]')
   if (learn) {
     learn.hidden = false
@@ -1512,12 +1510,6 @@ function showLearnWordTrio(card: Element, word: Word): void {
   }
   const pronounce = card.querySelector<HTMLElement>('[data-pronounce]')
   if (pronounce) pronounce.removeAttribute('aria-hidden')
-  const gloss = card.querySelector<HTMLElement>('[data-native]')
-  if (gloss) {
-    gloss.classList.add('is-shown')
-    gloss.removeAttribute('hidden')
-    gloss.textContent = word.forms[settings.native]
-  }
 }
 
 function revealLearnCard(index: number, force = false): void {
@@ -1532,7 +1524,7 @@ function revealLearnCard(index: number, force = false): void {
   setLearnBeat(card, 'reveal')
   finishRevealRing(card)
   stopSpeech()
-  showLearnWordTrio(card, word)
+  showLearnWordPair(card)
   window.clearTimeout(speakTimer)
   speakTimer = window.setTimeout(() => {
     if (activeIndex !== index) return
@@ -1549,11 +1541,6 @@ function clearLearnExamples(card: Element): void {
     learn.hidden = false
     learn.classList.add('is-blurred')
     learn.setAttribute('aria-hidden', 'true')
-  }
-  const gloss = card.querySelector<HTMLElement>('[data-native]')
-  if (gloss) {
-    gloss.classList.remove('is-shown')
-    gloss.removeAttribute('hidden')
   }
   const pronounce = card.querySelector<HTMLElement>('[data-pronounce]')
   if (pronounce) pronounce.setAttribute('aria-hidden', 'true')
@@ -1726,7 +1713,7 @@ function startPayoff(index: number): void {
 
   // Keep every card layer visible — only the top prompt line changes.
   setLearnBeat(card, 'payoff')
-  showLearnWordTrio(card, word)
+  showLearnWordPair(card)
 
   const hook = card.querySelector<HTMLElement>('[data-hook]')
   const question = payoffQuestion(index, word.forms[settings.native])
@@ -1763,7 +1750,7 @@ function showPayoffAnswer(index: number): void {
 
   const learn = card.querySelector<HTMLElement>('[data-learn]')
   const answer = word.forms[settings.learning]
-  showLearnWordTrio(card, word)
+  showLearnWordPair(card)
   if (learn) showLearnCheckmark(learn, answer)
   setLearnBeat(card, 'payoff')
 
@@ -1779,7 +1766,7 @@ function completeRecall(index: number, offerGen: number): void {
   if (!word || !card || activeIndex !== index) return
 
   setLearnBeat(card, word.examples.length > 0 ? 'explore' : 'payoff')
-  showLearnWordTrio(card, word)
+  showLearnWordPair(card)
   const learn = card.querySelector<HTMLElement>('[data-learn]')
   if (learn) showLearnCheckmark(learn, word.forms[settings.learning])
 
@@ -1875,12 +1862,10 @@ function refreshWords(): void {
     const learn = card.querySelector('[data-learn]')
     const pronounce = card.querySelector<HTMLElement>('[data-pronounce]')
     const hook = card.querySelector<HTMLElement>('[data-hook]')
-    const gloss = card.querySelector<HTMLElement>('[data-native]')
     if (learn && payoffStep !== 'done' && payoffStep !== 'answer') {
       learn.innerHTML = highlightLearnWord(word.forms[settings.learning])
     }
     if (pronounce) pronounce.textContent = pronunciationGuide(word.forms[settings.learning])
-    if (gloss) gloss.textContent = word.forms[settings.native]
     if (hook) {
       hook.hidden = !settings.sounds.ask
       hook.textContent = hookLine(index, word.forms[settings.native])
