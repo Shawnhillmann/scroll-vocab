@@ -9,6 +9,9 @@ import {
   isModeId,
   isSheetCategory,
   languages,
+  localizedCategoryShort,
+  localizedGroupLabel,
+  localizedModeLabel,
   modes,
   words,
   wordsInCategory,
@@ -42,6 +45,15 @@ import {
   unlockSfx,
   type SoundPrefs,
 } from './sfx.ts'
+import {
+  askTutor,
+  formatTutorHtml,
+  tutorFollowUps,
+  tutorQuickStarts,
+  tutorSystemPrompt,
+  type TutorChatMessage,
+  type TutorWordContext,
+} from './tutor.ts'
 
 const STORAGE_KEY = 'slowo-settings'
 
@@ -162,6 +174,10 @@ let spellingReplayWordId = ''
 let spellingReplayStep = 0
 let payoffStep: 'none' | 'ask' | 'answer' | 'done' = 'none'
 let payoffTimer = 0
+let tutorBusy = false
+let tutorContext: TutorWordContext | null = null
+let tutorMessages: TutorChatMessage[] = []
+const tutorHistory = new Map<string, TutorChatMessage[]>()
 
 prefetchVoices()
 
@@ -197,6 +213,7 @@ app.innerHTML = `
         <div class="learn-done-actions">
           <button class="start" type="button" id="learn-done-choice">Multiple choice</button>
           <button class="start start-alt" type="button" id="learn-done-blank">Fill in the blank</button>
+          <button class="start start-alt" type="button" id="learn-done-listen">Listening</button>
           <button class="start start-alt" type="button" id="learn-done-type">Typing</button>
           <button class="ghost-link" type="button" id="learn-done-home">Home</button>
         </div>
@@ -206,7 +223,7 @@ app.innerHTML = `
     <section class="gate" id="gate" ${settings.started ? 'hidden' : ''}>
       <div class="gate-body">
         <p class="brand">Słowo</p>
-        <p class="lede">Pick your languages, a category, then how you want to practice.</p>
+        <p class="lede">Pick your languages, how you want to practice, then a category.</p>
         <div class="field">
           <label>I speak</label>
           <div class="choices" data-lang-role="native"></div>
@@ -216,12 +233,12 @@ app.innerHTML = `
           <div class="choices" data-lang-role="learning"></div>
         </div>
         <div class="field">
-          <label>Category</label>
-          <div class="cat-groups" data-category-choices></div>
+          <label>Practice</label>
+          <div class="mode-grid" data-mode-choices></div>
         </div>
         <div class="field">
-          <label>Practice</label>
-          <div class="category-grid" data-mode-choices></div>
+          <label>Category</label>
+          <div class="cat-groups" data-category-choices></div>
         </div>
       </div>
       <button class="start" type="button" id="start" disabled>Choose a category</button>
@@ -240,12 +257,12 @@ app.innerHTML = `
           <div class="choices" data-lang-role="learning"></div>
         </div>
         <div class="field">
-          <label>Category</label>
-          <div class="cat-groups" data-category-choices></div>
+          <label>Practice</label>
+          <div class="mode-grid" data-mode-choices></div>
         </div>
         <div class="field">
-          <label>Practice</label>
-          <div class="category-grid" data-mode-choices></div>
+          <label>Category</label>
+          <div class="cat-groups" data-category-choices></div>
         </div>
       </div>
       <button class="start" type="button" id="save-settings">Done</button>
@@ -287,6 +304,44 @@ app.innerHTML = `
       </div>
       <button class="start" type="button" id="save-sounds">Done</button>
     </section>
+
+    <section class="tutor" id="tutor" hidden>
+      <header class="tutor-top">
+        <button class="tutor-back" type="button" id="tutor-back" aria-label="Back">
+          <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+            <path fill="currentColor" d="M15.4 4.6 8 12l7.4 7.4 1.4-1.4L10.8 12l6-6z"/>
+          </svg>
+        </button>
+        <div class="tutor-heading">
+          <p class="tutor-word" id="tutor-word"></p>
+          <p class="tutor-native" id="tutor-native"></p>
+        </div>
+        <span class="tutor-top-spacer" aria-hidden="true"></span>
+      </header>
+      <div class="tutor-scroll" id="tutor-scroll">
+        <div class="tutor-quick" id="tutor-quick"></div>
+        <div class="tutor-thread" id="tutor-thread"></div>
+        <div class="tutor-suggestions" id="tutor-suggestions" hidden></div>
+      </div>
+      <form class="tutor-compose" id="tutor-form">
+        <input
+          class="tutor-input"
+          id="tutor-input"
+          type="text"
+          enterkeyhint="send"
+          autocomplete="off"
+          autocorrect="on"
+          autocapitalize="sentences"
+          spellcheck="true"
+          placeholder="Ask anything…"
+        />
+        <button class="tutor-send" type="submit" id="tutor-send" aria-label="Send">
+          <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+            <path fill="currentColor" d="M3.4 20.6 21 12 3.4 3.4 3 10.3 14 12 3 13.7z"/>
+          </svg>
+        </button>
+      </form>
+    </section>
   </div>
 `
 
@@ -326,6 +381,14 @@ const sheet = qs<HTMLElement>('#sheet')
 const soundSheet = qs<HTMLElement>('#sounds')
 const results = qs<HTMLElement>('#results')
 const learnDone = qs<HTMLElement>('#learn-done')
+const tutor = qs<HTMLElement>('#tutor')
+const tutorScroll = qs<HTMLElement>('#tutor-scroll')
+const tutorQuick = qs<HTMLElement>('#tutor-quick')
+const tutorThread = qs<HTMLElement>('#tutor-thread')
+const tutorSuggestions = qs<HTMLElement>('#tutor-suggestions')
+const tutorInput = qs<HTMLInputElement>('#tutor-input')
+const tutorForm = qs<HTMLFormElement>('#tutor-form')
+const tutorSend = qs<HTMLButtonElement>('#tutor-send')
 const langLabel = qs<HTMLElement>('#lang-label')
 const progress = qs<HTMLElement>('#progress')
 const soundBtn = qs<HTMLButtonElement>('#open-sounds')
@@ -364,6 +427,14 @@ document.querySelectorAll('[data-lang-role]').forEach((root) => {
 })
 
 document.querySelectorAll('[data-category-choices]').forEach((root) => {
+  paintCategoryChoices(root)
+})
+
+document.querySelectorAll('[data-mode-choices]').forEach((root) => {
+  paintModeChoices(root)
+})
+
+function paintCategoryChoices(root: Element): void {
   root.innerHTML = categoryGroups
     .map((group) => {
       const chips = categoriesInGroup(group.id)
@@ -372,7 +443,7 @@ document.querySelectorAll('[data-category-choices]').forEach((root) => {
             <button class="cat-chip" type="button" data-category="${category.id}">
               <span class="cat-chip-emoji">${category.emoji}</span>
               <span class="cat-chip-copy">
-                <span class="cat-chip-label">${category.short}</span>
+                <span class="cat-chip-label" data-cat-label>${localizedCategoryShort(category, settings.native)}</span>
                 <span class="cat-chip-count" data-learn-count></span>
               </span>
             </button>
@@ -381,30 +452,47 @@ document.querySelectorAll('[data-category-choices]').forEach((root) => {
         .join('')
       return `
         <div class="cat-group">
-          <p class="cat-group-label">${group.label}</p>
+          <p class="cat-group-label" data-group-label="${group.id}">${localizedGroupLabel(group, settings.native)}</p>
           <div class="cat-grid">${chips}</div>
         </div>
       `
     })
     .join('')
-})
+}
 
-document.querySelectorAll('[data-mode-choices]').forEach((root) => {
+function paintModeChoices(root: Element): void {
   root.innerHTML = modes
     .map(
       (mode) => `
-        <button class="category-card" type="button" data-mode="${mode.id}">
-          <span class="category-emoji">${mode.emoji}</span>
-          <span class="category-meta">
-            <span>${mode.label}</span>
-            <span class="category-count">${mode.detail}</span>
-          </span>
+        <button class="mode-chip" type="button" data-mode="${mode.id}" title="${mode.detail}">
+          <span class="mode-chip-emoji">${mode.emoji}</span>
+          <span class="mode-chip-label" data-mode-label>${localizedModeLabel(mode, settings.native)}</span>
         </button>
       `,
     )
     .join('')
-})
+}
 
+function refreshGateLabels(): void {
+  categoryGroups.forEach((group) => {
+    document.querySelectorAll(`[data-group-label="${group.id}"]`).forEach((el) => {
+      el.textContent = localizedGroupLabel(group, settings.native)
+    })
+  })
+  document.querySelectorAll<HTMLElement>('[data-category]').forEach((choice) => {
+    const id = choice.dataset.category
+    if (!id || !isCategoryId(id)) return
+    const label = choice.querySelector('[data-cat-label]')
+    if (label) label.textContent = localizedCategoryShort(getCategory(id), settings.native)
+  })
+  document.querySelectorAll<HTMLElement>('[data-mode]').forEach((choice) => {
+    const id = choice.dataset.mode
+    if (!id || !isModeId(id)) return
+    const mode = modes.find((item) => item.id === id)
+    const label = choice.querySelector('[data-mode-label]')
+    if (mode && label) label.textContent = localizedModeLabel(mode, settings.native)
+  })
+}
 document.querySelectorAll('[data-lang-role]').forEach((root) => {
   root.addEventListener('click', (event) => {
     const button = (event.target as HTMLElement).closest<HTMLButtonElement>('[data-code]')
@@ -448,12 +536,43 @@ qs('#learn-done-home').addEventListener('click', goHome)
 qs('#learn-done-choice').addEventListener('click', () => {
   void continueAsQuiz('choice')
 })
-qs('#learn-done-type').addEventListener('click', () => {
-  void continueAsQuiz('type')
-})
 qs('#learn-done-blank').addEventListener('click', () => {
   void continueAsQuiz('blank')
 })
+qs('#learn-done-listen').addEventListener('click', () => {
+  void continueAsQuiz('listen')
+})
+qs('#learn-done-type').addEventListener('click', () => {
+  void continueAsQuiz('type')
+})
+
+qs('#tutor-back').addEventListener('click', closeTutor)
+tutorForm.addEventListener('submit', (event) => {
+  event.preventDefault()
+  void sendTutorMessage(tutorInput.value)
+})
+tutorQuick.addEventListener('click', (event) => {
+  const button = (event.target as HTMLElement).closest<HTMLButtonElement>('[data-tutor-prompt]')
+  if (!button) return
+  void sendTutorMessage(button.dataset.tutorPrompt ?? '')
+})
+tutorSuggestions.addEventListener('click', (event) => {
+  const button = (event.target as HTMLElement).closest<HTMLButtonElement>('[data-tutor-prompt]')
+  if (!button) return
+  void sendTutorMessage(button.dataset.tutorPrompt ?? '')
+})
+tutorInput.addEventListener('focus', () => {
+  syncTutorKeyboard()
+  window.setTimeout(() => {
+    scrollTutorToBottom()
+    tutorInput.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+  }, 280)
+})
+tutorInput.addEventListener('blur', () => {
+  window.setTimeout(syncTutorKeyboard, 120)
+})
+window.visualViewport?.addEventListener('resize', syncTutorKeyboard)
+window.visualViewport?.addEventListener('scroll', syncTutorKeyboard)
 
 qs('#open-settings').addEventListener('click', () => {
   if (settings.started) {
@@ -535,7 +654,7 @@ document.addEventListener('visibilitychange', () => {
 window.addEventListener('keydown', (event) => {
   if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') return
   if (event.target instanceof HTMLInputElement) return
-  if (!results.hidden || !learnDone.hidden) return
+  if (!results.hidden || !learnDone.hidden || !tutor.hidden) return
   event.preventDefault()
   const next = event.key === 'ArrowDown' ? activeIndex + 1 : activeIndex - 1
   const card = feed.querySelector<HTMLElement>(`[data-index="${next}"]`)
@@ -563,6 +682,7 @@ async function beginSession(): Promise<void> {
 }
 
 function goHome(): void {
+  closeTutor()
   stopSpeech()
   window.setTimeout(() => stopSpeech(), 80)
   skipCurrentRing = null
@@ -612,6 +732,7 @@ function showLearnDone(): void {
   qs<HTMLButtonElement>('#learn-done-choice').hidden = sheetCat
   qs<HTMLButtonElement>('#learn-done-type').hidden = sheetCat
   qs<HTMLButtonElement>('#learn-done-blank').hidden = sheetCat
+  qs<HTMLButtonElement>('#learn-done-listen').hidden = sheetCat
   learnDoneShown = true
   learnDone.hidden = false
   playResult()
@@ -756,15 +877,22 @@ function renderFeed(startId?: string): void {
   feed.querySelector<HTMLElement>(`[data-index="${activeIndex}"]`)?.scrollIntoView()
   refreshChrome()
   if (settings.started && effectiveMode() === 'learn') startLearnHook(activeIndex)
+  if (settings.started && effectiveMode() === 'listen') scheduleListenPrompt(activeIndex)
 }
 
 function bindFeed(): void {
   feed.querySelectorAll<HTMLElement>('.emoji-hit').forEach((button, index) => {
     button.addEventListener('click', () => {
       const card = button.closest('.card')
-      if (effectiveMode() !== 'learn' && !card?.classList.contains('answered')) return
+      const mode = effectiveMode()
+      if (mode === 'listen') {
+        unlockSpeech()
+        speakWord(index, true)
+        return
+      }
+      if (mode !== 'learn' && !card?.classList.contains('answered')) return
       unlockSpeech()
-      if (effectiveMode() === 'learn') {
+      if (mode === 'learn') {
         const revealed = card?.classList.contains('is-revealed')
         if (!revealed) {
           revealLearnCard(index, true)
@@ -832,6 +960,15 @@ function bindFeed(): void {
     })
   })
 
+  feed.querySelectorAll<HTMLButtonElement>('.tutor-launch').forEach((button) => {
+    button.addEventListener('click', (event) => {
+      event.stopPropagation()
+      const index = Number(button.dataset.tutorIndex)
+      if (Number.isNaN(index)) return
+      openTutor(index)
+    })
+  })
+
   observer = new IntersectionObserver(
     (entries) => {
       const visible = entries
@@ -857,6 +994,7 @@ function bindFeed(): void {
       activeIndex = index
       refreshChrome()
       if (settings.started && effectiveMode() === 'learn') startLearnHook(index)
+      if (settings.started && effectiveMode() === 'listen') scheduleListenPrompt(index)
     },
     { root: feed, threshold: 0.72 },
   )
@@ -933,6 +1071,7 @@ function sheetCardMarkup(sheet: ConjugationSheet, index: number): string {
       <p class="learn sheet-title">${escapeHtml(title)}</p>
       <p class="native sheet-subtitle">${escapeHtml(subtitle)}</p>
       <div class="sheet-table">${rows}</div>
+      ${tutorLaunchMarkup(index)}
     </article>
   `
 }
@@ -983,6 +1122,15 @@ function bindSheetFeed(): void {
   if (settings.started && activeIndex >= feedSheets.length - 1) {
     scheduleLearnDone(activeIndex, ++learnSpokenGen)
   }
+
+  feed.querySelectorAll<HTMLButtonElement>('.tutor-launch').forEach((button) => {
+    button.addEventListener('click', (event) => {
+      event.stopPropagation()
+      const index = Number(button.dataset.tutorIndex)
+      if (Number.isNaN(index)) return
+      openTutor(index)
+    })
+  })
 }
 
 function cardMarkup(word: Word, index: number, pool: Word[]): string {
@@ -1011,13 +1159,28 @@ function cardMarkup(word: Word, index: number, pool: Word[]): string {
   const quizUi =
     mode === 'choice'
       ? choiceUi
-      : mode === 'blank'
+      : mode === 'blank' || mode === 'listen'
         ? `${choiceUi}
           <p class="blank-or">or type it</p>
           ${typeUi}`
         : mode === 'type'
           ? typeUi
           : ''
+
+  if (mode === 'listen') {
+    return `
+    <article class="card card-quiz card-listen" data-index="${index}" data-answer="${answer}">
+      <button class="emoji-hit" type="button" aria-label="Replay word">
+        <span class="emoji">${word.emoji}</span>
+      </button>
+      <p class="listen-hint">What did you hear?</p>
+      <p class="learn" data-learn hidden></p>
+      <p class="native listen-native" data-native hidden>${native}</p>
+      ${quizUi}
+      ${tutorLaunchMarkup(index)}
+    </article>
+  `
+  }
 
   if (mode === 'blank' && blank) {
     return `
@@ -1031,6 +1194,7 @@ function cardMarkup(word: Word, index: number, pool: Word[]): string {
       <p class="blank-gloss" data-blank-gloss hidden>${escapeHtml(blank.gloss)}</p>
       <p class="learn" data-learn hidden></p>
       ${quizUi}
+      ${tutorLaunchMarkup(index)}
     </article>
   `
   }
@@ -1065,6 +1229,7 @@ function cardMarkup(word: Word, index: number, pool: Word[]): string {
       </button>
       ${prompt}
       ${quizUi}
+      ${tutorLaunchMarkup(index)}
     </article>
   `
   }
@@ -1072,7 +1237,21 @@ function cardMarkup(word: Word, index: number, pool: Word[]): string {
   return `
     <article class="card card-learn${settings.sounds.reveal ? '' : ' is-revealed'}" data-index="${index}" data-answer="${answer}"${settings.sounds.reveal ? ' data-beat="hook"' : ' data-beat="reveal"'}>
       ${prompt}
+      ${tutorLaunchMarkup(index)}
     </article>
+  `
+}
+
+function tutorLaunchMarkup(index: number): string {
+  return `
+    <button class="tutor-launch" type="button" data-tutor-index="${index}">
+      <span class="tutor-launch-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" width="16" height="16">
+          <path fill="currentColor" d="M4 4h16a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H8l-4 4v-4H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2zm3 5v2h10V9H7zm0 4v2h7v-2H7z"/>
+        </svg>
+      </span>
+      <span class="tutor-launch-label">Discuss with AI Tutor</span>
+    </button>
   `
 }
 
@@ -1146,6 +1325,18 @@ function findTermInSentence(
   }
 }
 
+function scheduleListenPrompt(index: number): void {
+  if (effectiveMode() !== 'listen') return
+  window.clearTimeout(speakTimer)
+  stopSpeech()
+  const card = feed.querySelector<HTMLElement>(`[data-index="${index}"]`)
+  if (!card || card.classList.contains('answered')) return
+  speakTimer = window.setTimeout(() => {
+    if (activeIndex !== index || effectiveMode() !== 'listen') return
+    speakWord(index, true)
+  }, 320)
+}
+
 function choiceWords(word: Word, pool: Word[]): string[] {
   const correct = word.forms[settings.learning]
   const takeDistractors = (source: Word[]): string[] =>
@@ -1185,6 +1376,14 @@ function gradeCard(card: HTMLElement, given: string): void {
     learn.hidden = false
     learn.textContent = expected
   }
+
+  const nativeGloss = card.querySelector<HTMLElement>('[data-native]')
+  if (nativeGloss && card.classList.contains('card-listen')) {
+    nativeGloss.hidden = false
+  }
+
+  const hint = card.querySelector<HTMLElement>('.listen-hint')
+  if (hint) hint.hidden = true
 
   const blankSentence = card.querySelector<HTMLElement>('[data-blank-sentence]')
   if (blankSentence) {
@@ -1952,6 +2151,8 @@ function refreshChrome(): void {
     })
   })
 
+  refreshGateLabels()
+
   document.querySelectorAll('[data-category]').forEach((choice) => {
     const id = (choice as HTMLElement).dataset.category
     choice.setAttribute('aria-pressed', String(id === settings.category))
@@ -2021,6 +2222,242 @@ function closeSettings(): void {
   } else {
     refreshChrome()
   }
+}
+
+function tutorHistoryKey(ctx: TutorWordContext): string {
+  return `${settings.learning}|${settings.native}|${ctx.learning}|${ctx.native}|${ctx.category ?? ''}`
+}
+
+function contextForTutor(index: number): TutorWordContext | null {
+  const category = settings.category ? getCategory(settings.category) : null
+  const learningLang = getLanguage(settings.learning).label
+  const nativeLang = getLanguage(settings.native).label
+
+  if (settings.category && isSheetCategory(settings.category) && feedSheets[index]) {
+    const sheetItem = feedSheets[index]
+    const learning = settings.learning === 'pl' ? sheetItem.titlePl : sheetItem.titleEn
+    const native = settings.learning === 'pl' ? sheetItem.titleEn : sheetItem.titlePl
+    return {
+      learning,
+      native,
+      emoji: sheetItem.emoji,
+      learningLang,
+      nativeLang,
+      category: category?.label,
+    }
+  }
+
+  const word = feedWords[index]
+  if (!word) return null
+  return {
+    learning: word.forms[settings.learning],
+    native: word.forms[settings.native],
+    emoji: word.emoji,
+    learningLang,
+    nativeLang,
+    category: category?.label,
+  }
+}
+
+function openTutor(index: number): void {
+  const ctx = contextForTutor(index)
+  if (!ctx) return
+
+  unlockSpeech()
+  stopSpeech()
+  window.clearTimeout(speakTimer)
+  window.clearTimeout(revealTimer)
+  window.clearTimeout(learnSpokenTimer)
+  window.clearTimeout(payoffTimer)
+  window.clearTimeout(advanceTimer)
+  learnGeneration += 1
+  learnSpokenGen += 1
+  skipCurrentRing = null
+  exampleWaiting = false
+
+  tutorContext = ctx
+  const key = tutorHistoryKey(ctx)
+  tutorMessages = [...(tutorHistory.get(key) ?? [])]
+  tutorBusy = false
+  tutorSend.disabled = false
+  tutorInput.disabled = false
+  tutorInput.placeholder = `Ask anything about ${ctx.learning}…`
+  qs('#tutor-word').textContent = ctx.learning
+  qs('#tutor-native').textContent = ctx.native
+  renderTutorQuick()
+  renderTutorThread()
+  renderTutorSuggestions()
+  tutor.hidden = false
+  syncTutorKeyboard()
+  tutorScroll.scrollTop = 0
+  window.setTimeout(() => tutorInput.focus(), 180)
+}
+
+function closeTutor(): void {
+  if (tutorContext) {
+    tutorHistory.set(tutorHistoryKey(tutorContext), [...tutorMessages])
+  }
+  tutor.hidden = true
+  tutorBusy = false
+  tutorContext = null
+  tutor.style.removeProperty('--tutor-keyboard')
+  tutorInput.blur()
+}
+
+function syncTutorKeyboard(): void {
+  if (tutor.hidden) {
+    tutor.style.removeProperty('--tutor-keyboard')
+    return
+  }
+  const vv = window.visualViewport
+  if (!vv) {
+    tutor.style.removeProperty('--tutor-keyboard')
+    return
+  }
+  const occluded = Math.max(0, window.innerHeight - vv.height - vv.offsetTop)
+  tutor.style.setProperty('--tutor-keyboard', `${Math.round(occluded)}px`)
+}
+
+function renderTutorQuick(): void {
+  if (!tutorContext) {
+    tutorQuick.innerHTML = ''
+    tutorQuick.hidden = true
+    return
+  }
+  const show = tutorMessages.length === 0
+  tutorQuick.hidden = !show
+  if (!show) {
+    tutorQuick.innerHTML = ''
+    return
+  }
+  const prompts = tutorQuickStarts(tutorContext)
+  tutorQuick.innerHTML = `
+    <p class="tutor-section-label">Quick start</p>
+    <div class="tutor-quick-list">
+      ${prompts
+        .map(
+          (prompt, i) => `
+            <button class="tutor-quick-btn" type="button" data-tutor-prompt="${escapeHtml(prompt)}">
+              <span class="tutor-quick-dot tutor-quick-dot-${i % 4}" aria-hidden="true"></span>
+              <span>${escapeHtml(prompt)}</span>
+            </button>`,
+        )
+        .join('')}
+    </div>
+  `
+}
+
+function renderTutorThread(): void {
+  if (!tutorContext) {
+    tutorThread.innerHTML = ''
+    return
+  }
+  tutorThread.innerHTML = tutorMessages
+    .map((message) => {
+      if (message.role === 'user') {
+        return `<div class="tutor-bubble tutor-bubble-user"><p>${escapeHtml(message.content)}</p></div>`
+      }
+      return `<div class="tutor-row-assistant">
+        <span class="tutor-avatar" aria-hidden="true">✦</span>
+        <div class="tutor-bubble tutor-bubble-assistant">${formatTutorHtml(message.content, tutorContext?.learning)}</div>
+      </div>`
+    })
+    .join('')
+}
+
+function renderTutorSuggestions(): void {
+  if (!tutorContext || tutorMessages.length === 0 || tutorBusy) {
+    tutorSuggestions.hidden = true
+    tutorSuggestions.innerHTML = ''
+    return
+  }
+  const last = tutorMessages[tutorMessages.length - 1]
+  if (last?.role !== 'assistant') {
+    tutorSuggestions.hidden = true
+    tutorSuggestions.innerHTML = ''
+    return
+  }
+  const prompts = tutorFollowUps(tutorContext)
+  tutorSuggestions.hidden = false
+  tutorSuggestions.innerHTML = prompts
+    .map(
+      (prompt) =>
+        `<button class="tutor-chip" type="button" data-tutor-prompt="${escapeHtml(prompt)}">${escapeHtml(prompt)}</button>`,
+    )
+    .join('')
+}
+
+function setTutorBusy(busy: boolean): void {
+  tutorBusy = busy
+  tutorSend.disabled = busy
+  tutorInput.disabled = busy
+  tutorQuick.querySelectorAll('button').forEach((button) => {
+    ;(button as HTMLButtonElement).disabled = busy
+  })
+  tutorSuggestions.querySelectorAll('button').forEach((button) => {
+    ;(button as HTMLButtonElement).disabled = busy
+  })
+}
+
+async function sendTutorMessage(raw: string): Promise<void> {
+  const text = raw.trim()
+  if (!text || !tutorContext || tutorBusy) return
+
+  tutorInput.value = ''
+  tutorMessages.push({ role: 'user', content: text })
+  renderTutorQuick()
+  renderTutorThread()
+  renderTutorSuggestions()
+  appendTutorPending()
+  scrollTutorToBottom()
+  setTutorBusy(true)
+
+  try {
+    const reply = await askTutor(tutorSystemPrompt(tutorContext), tutorMessages)
+    removeTutorPending()
+    tutorMessages.push({ role: 'assistant', content: reply })
+    tutorHistory.set(tutorHistoryKey(tutorContext), [...tutorMessages])
+    renderTutorThread()
+    renderTutorSuggestions()
+  } catch (error) {
+    removeTutorPending()
+    const message = error instanceof Error ? error.message : 'Something went wrong'
+    tutorMessages.pop()
+    renderTutorQuick()
+    renderTutorThread()
+    appendTutorError(message)
+    renderTutorSuggestions()
+  } finally {
+    setTutorBusy(false)
+    scrollTutorToBottom()
+  }
+}
+
+function appendTutorPending(): void {
+  tutorThread.insertAdjacentHTML(
+    'beforeend',
+    `<div class="tutor-row-assistant" data-tutor-pending>
+      <span class="tutor-avatar" aria-hidden="true">✦</span>
+      <div class="tutor-bubble tutor-bubble-assistant tutor-pending">Thinking…</div>
+    </div>`,
+  )
+}
+
+function removeTutorPending(): void {
+  tutorThread.querySelector('[data-tutor-pending]')?.remove()
+}
+
+function appendTutorError(message: string): void {
+  tutorThread.insertAdjacentHTML(
+    'beforeend',
+    `<p class="tutor-error">${escapeHtml(message)}</p>`,
+  )
+}
+
+function scrollTutorToBottom(): void {
+  window.requestAnimationFrame(() => {
+    tutorScroll.scrollTop = tutorScroll.scrollHeight
+  })
 }
 
 function normalizeAnswer(value: string): string {

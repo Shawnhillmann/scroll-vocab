@@ -48,7 +48,7 @@ export type CategoryId =
   | 'conj-present'
   | 'conj-past'
   | 'conj-future'
-export type ModeId = 'learn' | 'choice' | 'type' | 'blank' | 'recap'
+export type ModeId = 'learn' | 'choice' | 'type' | 'blank' | 'listen' | 'recap'
 
 export type Mode = {
   id: ModeId
@@ -197,6 +197,12 @@ export const modes: Mode[] = [
     detail: 'Pick or type the missing word in a sentence',
     emoji: '✏️',
   },
+  {
+    id: 'listen',
+    label: 'Listening',
+    detail: 'Hear the word, then pick or type what you heard',
+    emoji: '🎧',
+  },
   { id: 'type', label: 'Typing', detail: 'Type the word yourself', emoji: '⌨️' },
   {
     id: 'recap',
@@ -208,6 +214,83 @@ export const modes: Mode[] = [
 
 function tintFor(category: CategoryId): string {
   return categories.find((item) => item.id === category)?.tint ?? '#16120e'
+}
+
+const GROUP_LABEL_PL: Record<CategoryGroupId, string> = {
+  core: 'Podstawy',
+  nouns: 'Rzeczowniki',
+  verbs: 'Czasowniki',
+  modifiers: 'Przymiotniki i przysłówki',
+  conjugations: 'Koniugacje',
+}
+
+const CATEGORY_SHORT_PL: Record<CategoryId, string> = {
+  core1: 'Podstawy 1',
+  core2: 'Podstawy 2',
+  core3: 'Podstawy 3',
+  core4: 'Podstawy 4',
+  core5: 'Podstawy 5',
+  numbers: 'Liczby',
+  days: 'Dni',
+  months: 'Miesiące',
+  clock: 'Godziny',
+  kitchen: 'Kuchnia',
+  furniture: 'Meble',
+  home: 'Dom',
+  fruit: 'Owoce',
+  food: 'Jedzenie',
+  drinks: 'Napoje i słodycze',
+  animals: 'Zwierzęta',
+  wild: 'Dzika przyroda',
+  creatures: 'Morze i owady',
+  transport: 'Transport',
+  city: 'Miejsca',
+  streets: 'Podróże',
+  people: 'Rodzina',
+  jobs: 'Praca',
+  face: 'Twarz',
+  body: 'Ciało',
+  health: 'Zdrowie',
+  clothing: 'Ubrania',
+  accessories: 'Dodatki',
+  weather: 'Pogoda',
+  nature: 'Natura',
+  actions: 'Codzienne',
+  doing: 'Czynności',
+  motion: 'Ruch',
+  social: 'Ludzie i umysł',
+  chores: 'Domowe',
+  descriptions: 'Uczucia',
+  size: 'Cechy',
+  colors: 'Kolory',
+  looks: 'Wygląd',
+  manner: 'Sposób',
+  timing: 'Czas',
+  degree: 'Stopień',
+  'conj-present': 'Teraźniejszy',
+  'conj-past': 'Przeszły',
+  'conj-future': 'Przyszły',
+}
+
+const MODE_LABEL_PL: Record<ModeId, string> = {
+  learn: 'Nauka',
+  choice: 'Quiz',
+  blank: 'Luki',
+  listen: 'Słuchanie',
+  type: 'Pisanie',
+  recap: 'Powtórka',
+}
+
+export function localizedGroupLabel(group: CategoryGroup, lang: LangCode): string {
+  return lang === 'pl' ? (GROUP_LABEL_PL[group.id] ?? group.label) : group.label
+}
+
+export function localizedCategoryShort(category: Category, lang: LangCode): string {
+  return lang === 'pl' ? (CATEGORY_SHORT_PL[category.id] ?? category.short) : category.short
+}
+
+export function localizedModeLabel(mode: Mode, lang: LangCode): string {
+  return lang === 'pl' ? (MODE_LABEL_PL[mode.id] ?? mode.label) : mode.label
 }
 
 function singleEmoji(value: string): string {
