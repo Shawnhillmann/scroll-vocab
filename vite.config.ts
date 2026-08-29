@@ -1,6 +1,6 @@
 import { defineConfig, loadEnv, type Plugin, type PreviewServer, type ViteDevServer } from 'vite'
 import type { IncomingMessage, ServerResponse } from 'node:http'
-import { runTutorChat, type TutorMessage } from './server/tutorProxy.ts'
+import { runTutorChat, type TutorMessage } from './lib/tutorProxy.ts'
 
 async function readBody(req: IncomingMessage): Promise<string> {
   const chunks: Buffer[] = []

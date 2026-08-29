@@ -54,13 +54,33 @@ export async function askTutor(
   system: string,
   messages: TutorChatMessage[],
 ): Promise<string> {
-  const response = await fetch('/api/tutor', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ system, messages }),
-  })
+  let response: Response
+  try {
+    response = await fetch('/api/tutor', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ system, messages }),
+    })
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Network error'
+    throw new Error(`Could not reach tutor (${message})`)
+  }
 
-  const data = (await response.json()) as { reply?: string; error?: string }
+  const raw = await response.text()
+  let data: { reply?: string; error?: string } = {}
+  if (raw) {
+    try {
+      data = JSON.parse(raw) as { reply?: string; error?: string }
+    } catch {
+      const snippet = raw.replace(/\s+/g, ' ').trim().slice(0, 160)
+      throw new Error(
+        snippet
+          ? `Tutor server error: ${snippet}`
+          : `Tutor request failed (${response.status})`,
+      )
+    }
+  }
+
   if (!response.ok) {
     throw new Error(data.error ?? `Tutor request failed (${response.status})`)
   }
@@ -121,11 +141,12 @@ function formatInline(raw: string, highlight?: string): string {
   s = s.replace(/^#+\s*/g, '')
 
   if (highlight?.trim()) {
-    const pattern = new RegExp(`(${escapeRegExp(highlight.trim())})`, 'gi')
-    s = s.replace(pattern, (match) => {
-      // Don't nest marks inside already-wrapped tags awkwardly — simple replace is fine
-      return `<mark class="tutor-hit">${match}</mark>`
-    })
+    try {
+      const pattern = new RegExp(`(${escapeRegExp(highlight.trim())})`, 'gi')
+      s = s.replace(pattern, (match) => `<mark class="tutor-hit">${match}</mark>`)
+    } catch {
+      // Ignore invalid highlight patterns (some mobile browsers are strict)
+    }
   }
 
   return s

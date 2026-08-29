@@ -46,9 +46,19 @@ export async function runTutorChat(input: {
       }),
     })
 
-    const data = (await upstream.json()) as {
+    const raw = await upstream.text()
+    let data: {
       error?: { message?: string }
       choices?: Array<{ message?: { content?: string } }>
+    } = {}
+    try {
+      data = raw ? (JSON.parse(raw) as typeof data) : {}
+    } catch {
+      return {
+        ok: false,
+        status: 502,
+        error: raw.slice(0, 180) || `OpenAI returned non-JSON (${upstream.status})`,
+      }
     }
 
     if (!upstream.ok) {
