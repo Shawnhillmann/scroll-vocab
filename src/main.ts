@@ -833,10 +833,16 @@ function bindFeed(): void {
       const index = Number((visible.target as HTMLElement).dataset.index)
       if (Number.isNaN(index)) return
 
+      const switching = index !== activeIndex
+      // Reset before is-active so a previously revealed card never flashes the word.
+      if (switching && settings.started && effectiveMode() === 'learn') {
+        clearLearnExamples(visible.target)
+      }
+
       feed.querySelectorAll('.card').forEach((card) => card.classList.remove('is-active'))
       visible.target.classList.add('is-active')
 
-      if (index === activeIndex) return
+      if (!switching) return
 
       activeIndex = index
       refreshChrome()
@@ -1411,6 +1417,7 @@ function startLearnHook(index: number): void {
       const learn = card.querySelector<HTMLElement>('[data-learn]')
       learn?.classList.remove('is-blurred')
       learn?.removeAttribute('aria-hidden')
+      card.querySelector<HTMLElement>('[data-pronounce]')?.removeAttribute('aria-hidden')
     })
     speakWord(index, false, 'examples')
     return
@@ -1424,6 +1431,7 @@ function startLearnHook(index: number): void {
       learn.classList.add('is-blurred')
       learn.setAttribute('aria-hidden', 'true')
     }
+    card.querySelector<HTMLElement>('[data-pronounce]')?.setAttribute('aria-hidden', 'true')
   })
 
   const card = feed.querySelector(`[data-index="${index}"]`)
@@ -1484,6 +1492,7 @@ function revealLearnCard(index: number, force = false): void {
     learn.classList.remove('is-blurred')
     learn.removeAttribute('aria-hidden')
   }
+  card.querySelector<HTMLElement>('[data-pronounce]')?.removeAttribute('aria-hidden')
   window.clearTimeout(speakTimer)
   speakTimer = window.setTimeout(() => {
     if (activeIndex !== index) return
@@ -1492,16 +1501,20 @@ function revealLearnCard(index: number, force = false): void {
 }
 
 function clearLearnExamples(card: Element): void {
-  card.classList.remove('has-examples', 'is-recall', 'is-recall-revealed')
-  card.removeAttribute('data-beat')
+  card.classList.remove('has-examples', 'is-recall', 'is-recall-revealed', 'is-revealed', 'speaking')
+  setLearnBeat(card, 'hook')
   const box = card.querySelector('[data-examples]')
   if (box) box.replaceChildren()
   const learn = card.querySelector<HTMLElement>('[data-learn]')
   if (learn) {
     learn.hidden = false
-    learn.classList.remove('is-blurred')
-    learn.removeAttribute('aria-hidden')
+    learn.classList.add('is-blurred')
+    learn.setAttribute('aria-hidden', 'true')
   }
+  const gloss = card.querySelector<HTMLElement>('[data-native]')
+  if (gloss) gloss.hidden = true
+  const pronounce = card.querySelector<HTMLElement>('[data-pronounce]')
+  if (pronounce) pronounce.setAttribute('aria-hidden', 'true')
 }
 
 function restoreLearnWord(learn: HTMLElement, text: string): void {
@@ -1643,11 +1656,11 @@ function showExample(index: number, step: number): void {
       if (offerGen !== learnSpokenGen) return
       if (generation !== learnGeneration || activeIndex !== index) return
       queueExample(index, step + 1)
-    }, 1180)
+    }, 720)
   }
 
   if (!settings.sounds.voice) {
-    learnSpokenTimer = window.setTimeout(afterSpoken, step === 0 ? 520 : 380)
+    learnSpokenTimer = window.setTimeout(afterSpoken, step === 0 ? 480 : 360)
     return
   }
 
@@ -1687,6 +1700,7 @@ function startPayoff(index: number): void {
     learn.setAttribute('aria-hidden', 'true')
     restoreLearnWord(learn, word.forms[settings.learning])
   }
+  card.querySelector<HTMLElement>('[data-pronounce]')?.setAttribute('aria-hidden', 'true')
 
   const generation = learnGeneration
   const durationMs = settings.sounds.voice ? recallRingMs(question) : 1400
@@ -1721,6 +1735,7 @@ function showPayoffAnswer(index: number): void {
     learn.removeAttribute('aria-hidden')
     showLearnCheckmark(learn, answer)
   }
+  card.querySelector<HTMLElement>('[data-pronounce]')?.removeAttribute('aria-hidden')
   if (gloss) {
     gloss.hidden = false
     gloss.textContent = word.forms[settings.native]
@@ -1730,7 +1745,7 @@ function showPayoffAnswer(index: number): void {
   payoffTimer = window.setTimeout(() => {
     if (payoffStep !== 'answer' || activeIndex !== index) return
     speakPayoffAnswer(index)
-  }, 480)
+  }, 420)
 }
 
 function completeRecall(index: number, offerGen: number): void {
