@@ -670,6 +670,26 @@ button {
   cursor: not-allowed;
 }
 
+.cat-clear-scores {
+  display: block;
+  width: 100%;
+  margin-top: 14px;
+  padding: 8px 0 4px;
+  color: var(--muted);
+  font-size: 0.82rem;
+  letter-spacing: 0.02em;
+  text-align: center;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.cat-clear-scores[hidden] {
+  display: none;
+}
+
+.cat-clear-scores:active {
+  color: var(--ink);
+}
+
 .field-note {
   margin: 0 0 10px;
   color: var(--muted);
@@ -714,6 +734,62 @@ button {
   background: var(--ink);
   color: #16120e;
   border-color: var(--ink);
+}
+
+.cat-chip.is-perfect:not([aria-pressed='true']) {
+  border-color: rgba(88, 168, 108, 0.55);
+  background: rgba(88, 168, 108, 0.1);
+}
+
+.cat-chip-perfect {
+  display: none;
+  flex: 0 0 auto;
+  width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  place-items: center;
+  font-size: 0.72rem;
+  font-weight: 800;
+  line-height: 1;
+  color: rgba(88, 168, 108, 0.95);
+  background: rgba(88, 168, 108, 0.18);
+}
+
+.cat-chip.is-perfect .cat-chip-perfect {
+  display: grid;
+}
+
+.cat-chip.is-perfect[aria-pressed='true'] .cat-chip-perfect {
+  color: #16120e;
+  background: rgba(22, 18, 14, 0.12);
+}
+
+.cat-chip.is-failed:not([aria-pressed='true']) {
+  border-color: rgba(220, 96, 96, 0.55);
+  background: rgba(220, 96, 96, 0.08);
+}
+
+.cat-chip-failed {
+  display: none;
+  flex: 0 0 auto;
+  width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  place-items: center;
+  font-size: 0.68rem;
+  font-weight: 800;
+  line-height: 1;
+  color: rgba(220, 96, 96, 0.95);
+  background: rgba(220, 96, 96, 0.16);
+}
+
+.cat-chip.is-failed .cat-chip-failed {
+  display: grid;
+}
+
+.cat-chip.is-failed[aria-pressed='true'] .cat-chip-failed {
+  color: #16120e;
+  background: rgba(22, 18, 14, 0.12);
 }
 
 .cat-chip:disabled {

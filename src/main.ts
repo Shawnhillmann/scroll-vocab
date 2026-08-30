@@ -67,6 +67,119 @@ import {
 } from './tutor.ts'
 
 const STORAGE_KEY = 'slowo-settings'
+const QUIZ_SCORES_KEY = 'slowo-quiz-scores'
+const LEGACY_PERFECT_QUIZZES_KEY = 'slowo-perfect-quizzes'
+
+type QuizScoreState = 'perfect' | 'failed'
+type QuizScoreStore = Record<string, QuizScoreState>
+
+function quizScoreKey(categoryId: CategoryId): string {
+  return `${settings.native}|${settings.learning}|${categoryId}`
+}
+
+function loadQuizScores(): QuizScoreStore {
+  const store: QuizScoreStore = {}
+  try {
+    const raw = localStorage.getItem(QUIZ_SCORES_KEY)
+    if (raw) {
+      const parsed = JSON.parse(raw) as QuizScoreStore
+      if (parsed && typeof parsed === 'object') {
+        for (const [key, value] of Object.entries(parsed)) {
+          if (value === 'perfect' || value === 'failed') store[key] = value
+        }
+      }
+    }
+  } catch {
+    /* ignore corrupt storage */
+  }
+
+  try {
+    const legacy = localStorage.getItem(LEGACY_PERFECT_QUIZZES_KEY)
+    if (legacy) {
+      const parsed = JSON.parse(legacy) as Record<string, true>
+      if (parsed && typeof parsed === 'object') {
+        for (const key of Object.keys(parsed)) {
+          if (parsed[key] && !store[key]) store[key] = 'perfect'
+        }
+      }
+      localStorage.removeItem(LEGACY_PERFECT_QUIZZES_KEY)
+      saveQuizScores(store)
+    }
+  } catch {
+    /* ignore legacy migration */
+  }
+
+  return store
+}
+
+function saveQuizScores(store: QuizScoreStore): void {
+  localStorage.setItem(QUIZ_SCORES_KEY, JSON.stringify(store))
+}
+
+let quizScores = loadQuizScores()
+
+function getQuizScore(categoryId: CategoryId): QuizScoreState | null {
+  return quizScores[quizScoreKey(categoryId)] ?? null
+}
+
+function recordQuizScore(categoryId: CategoryId, ratio: number): void {
+  const key = quizScoreKey(categoryId)
+  let next = { ...quizScores }
+
+  if (ratio === 1) {
+    next[key] = 'perfect'
+  } else if (ratio < 0.7) {
+    if (next[key] !== 'perfect') next[key] = 'failed'
+  } else if (next[key] === 'failed') {
+    delete next[key]
+  } else {
+    return
+  }
+
+  quizScores = next
+  saveQuizScores(quizScores)
+}
+
+function clearQuizScoresForLanguagePair(): void {
+  const prefix = `${settings.native}|${settings.learning}|`
+  const next: QuizScoreStore = {}
+  for (const [key, value] of Object.entries(quizScores)) {
+    if (!key.startsWith(prefix)) next[key] = value
+  }
+  quizScores = next
+  saveQuizScores(quizScores)
+  refreshCategoryScoreChips()
+  refreshClearScoresButtons()
+}
+
+function hasQuizScoresForLanguagePair(): boolean {
+  const prefix = `${settings.native}|${settings.learning}|`
+  return Object.keys(quizScores).some((key) => key.startsWith(prefix))
+}
+
+const PERFECT_QUIZ_TITLE: Record<LangCode, string> = {
+  en: 'Perfect quiz score',
+  pl: 'Idealny wynik quizu',
+}
+
+const FAILED_QUIZ_TITLE: Record<LangCode, string> = {
+  en: 'Needs more practice',
+  pl: 'Wymaga więcej ćwiczeń',
+}
+
+const CLEAR_QUIZ_SCORES_LABEL: Record<LangCode, string> = {
+  en: 'Clear category scores',
+  pl: 'Wyczyść wyniki kategorii',
+}
+
+function categoryScoreTitle(categoryId: CategoryId, state: QuizScoreState): string {
+  const label = localizedCategoryShort(getCategory(categoryId), settings.native)
+  const suffix =
+    state === 'perfect'
+      ? (PERFECT_QUIZ_TITLE[settings.native] ?? PERFECT_QUIZ_TITLE.en)
+      : (FAILED_QUIZ_TITLE[settings.native] ?? FAILED_QUIZ_TITLE.en)
+  return `${label} — ${suffix}`
+}
 
 type Settings = {
   native: LangCode
@@ -467,7 +580,7 @@ document.querySelectorAll('[data-mode-choices]').forEach((root) => {
 })
 
 function paintCategoryChoices(root: Element): void {
-  root.innerHTML = categoryGroups
+  const groups = categoryGroups
     .map((group) => {
       const chips = categoriesInGroup(group.id)
         .map(
@@ -478,6 +591,8 @@ function paintCategoryChoices(root: Element): void {
                 <span class="cat-chip-label" data-cat-label>${localizedCategoryShort(category, settings.native)}</span>
                 <span class="cat-chip-count" data-learn-count></span>
               </span>
+              <span class="cat-chip-perfect" aria-hidden="true">✓</span>
+              <span class="cat-chip-failed" aria-hidden="true">✕</span>
             </button>
           `,
         )
@@ -490,6 +605,8 @@ function paintCategoryChoices(root: Element): void {
       `
     })
     .join('')
+
+  root.innerHTML = `${groups}<button class="cat-clear-scores" type="button" data-clear-quiz-scores hidden>Clear category scores</button>`
 }
 
 function paintModeChoices(root: Element): void {
@@ -588,6 +705,11 @@ qs('#tutor-back').addEventListener('click', closeTutor)
 document.querySelectorAll('[data-gate-tutor]').forEach((button) => {
   button.addEventListener('click', () => {
     openGeneralTutor()
+  })
+})
+document.querySelectorAll('[data-clear-quiz-scores]').forEach((button) => {
+  button.addEventListener('click', () => {
+    clearQuizScoresForLanguagePair()
   })
 })
 tutorForm.addEventListener('submit', (event) => {
@@ -852,6 +974,11 @@ function showResults(): void {
   qs('#results-score').textContent = `${sessionCorrect} / ${total}`
   qs('#results-sub').textContent =
     ratio === 1 ? 'Perfect round' : ratio >= 0.7 ? 'Really strong' : 'Keep scrolling — you’ll lock these in'
+  if (settings.category && categorySupportsQuiz(settings.category)) {
+    recordQuizScore(settings.category, ratio)
+    refreshCategoryScoreChips()
+    refreshClearScoresButtons()
+  }
   results.hidden = false
   if (ratio >= 0.7) playVictory()
   else playDefeat()
@@ -2322,16 +2449,8 @@ function refreshChrome(): void {
 
   refreshGateLabels()
 
-  document.querySelectorAll('[data-category]').forEach((choice) => {
-    const id = (choice as HTMLElement).dataset.category
-    choice.setAttribute('aria-pressed', String(id === settings.category))
-    const countEl = choice.querySelector('[data-learn-count]')
-    if (id && isCategoryId(id) && countEl) {
-      countEl.textContent = isSheetCategory(id)
-        ? `${sheetsInCategory(id).length}`
-        : `${wordsInCategory(id).length}`
-    }
-  })
+  refreshCategoryScoreChips()
+  refreshClearScoresButtons()
 
   const quizOk = categorySupportsQuiz(settings.category)
   document.querySelectorAll('[data-mode]').forEach((choice) => {
@@ -2345,6 +2464,38 @@ function refreshChrome(): void {
 
   refreshSoundSheet()
   refreshWords()
+}
+
+function refreshCategoryScoreChips(): void {
+  document.querySelectorAll<HTMLElement>('[data-category]').forEach((choice) => {
+    const id = choice.dataset.category
+    choice.setAttribute('aria-pressed', String(id === settings.category))
+    const countEl = choice.querySelector('[data-learn-count]')
+    if (id && isCategoryId(id) && countEl) {
+      countEl.textContent = isSheetCategory(id)
+        ? `${sheetsInCategory(id).length}`
+        : `${wordsInCategory(id).length}`
+    }
+
+    const score =
+      id && isCategoryId(id) && !isSheetCategory(id) ? getQuizScore(id) : null
+    choice.classList.toggle('is-perfect', score === 'perfect')
+    choice.classList.toggle('is-failed', score === 'failed')
+    if (score && id && isCategoryId(id)) {
+      choice.title = categoryScoreTitle(id, score)
+    } else {
+      choice.removeAttribute('title')
+    }
+  })
+}
+
+function refreshClearScoresButtons(): void {
+  const visible = hasQuizScoresForLanguagePair()
+  const label = CLEAR_QUIZ_SCORES_LABEL[settings.native] ?? CLEAR_QUIZ_SCORES_LABEL.en
+  document.querySelectorAll<HTMLElement>('[data-clear-quiz-scores]').forEach((button) => {
+    button.hidden = !visible
+    button.textContent = label
+  })
 }
 
 function refreshSoundSheet(): void {
