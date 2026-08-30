@@ -16,6 +16,7 @@ export type CategoryId =
   | 'core3'
   | 'core4'
   | 'core5'
+  | 'core6'
   | 'numbers'
   | 'days'
   | 'months'
@@ -135,6 +136,7 @@ export const categories: Category[] = [
   { id: 'core3', group: 'core', label: 'Core Words 3', short: 'Core 3', emoji: '3️⃣', tint: '#201c2c' },
   { id: 'core4', group: 'core', label: 'Core Words 4', short: 'Core 4', emoji: '4️⃣', tint: '#1e1c2e' },
   { id: 'core5', group: 'core', label: 'Core Words 5', short: 'Core 5', emoji: '5️⃣', tint: '#1c1c30' },
+  { id: 'core6', group: 'core', label: 'Core Words 6', short: 'Core 6', emoji: '6️⃣', tint: '#1a1c32' },
   // 🏠 EVERYDAY LIFE
   { id: 'kitchen', group: 'everyday', label: 'Kitchen', short: 'Kitchen', emoji: '🍳', tint: '#3a2418' },
   { id: 'furniture', group: 'everyday', label: 'Furniture', short: 'Furniture', emoji: '🛋️', tint: '#2c241c' },
@@ -253,6 +255,7 @@ const CATEGORY_SHORT_PL: Record<CategoryId, string> = {
   core3: 'Podstawy 3',
   core4: 'Podstawy 4',
   core5: 'Podstawy 5',
+  core6: 'Podstawy 6',
   numbers: 'Liczby',
   days: 'Dni',
   months: 'Miesiące',
@@ -315,6 +318,15 @@ export function localizedCategoryShort(category: Category, lang: LangCode): stri
 
 export function localizedModeLabel(mode: Mode, lang: LangCode): string {
   return lang === 'pl' ? (MODE_LABEL_PL[mode.id] ?? mode.label) : mode.label
+}
+
+const PRACTICE_MODES_LABEL: Record<LangCode, string> = {
+  en: 'Practice Modes',
+  pl: 'Tryby nauki',
+}
+
+export function localizedPracticeModesLabel(lang: LangCode): string {
+  return PRACTICE_MODES_LABEL[lang] ?? PRACTICE_MODES_LABEL.en
 }
 
 function singleEmoji(value: string): string {
@@ -454,6 +466,27 @@ export const words: Word[] = [
   word('core-razem', 'core5', '🫶', 'together', 'razem'),
   word('core-sam', 'core5', '🧍', 'alone', 'sam'),
   word('core-prawda', 'core5', '✅', 'truth', 'prawda'),
+
+  word('core-pieniadze', 'core6', '💰', 'money', 'pieniądze'),
+  word('core-dolar', 'core6', '💵', 'dollar', 'dolar'),
+  word('core-moneta', 'core6', '🪙', 'coin', 'moneta'),
+  word('core-zloty', 'core6', '🇵🇱', 'zloty', 'złoty'),
+  word('core-euro', 'core6', '💶', 'euro', 'euro'),
+  word('core-cena', 'core6', '🏷️', 'price', 'cena'),
+  word('core-placic', 'core6', '💳', 'to pay', 'płacić'),
+  word('core-kupic', 'core6', '🛒', 'to buy', 'kupić'),
+  word('core-sprzedawac', 'core6', '📤', 'to sell', 'sprzedawać'),
+  word('core-tani', 'core6', '💸', 'cheap', 'tani'),
+  word('core-drogi', 'core6', '💎', 'expensive', 'drogi'),
+  word('core-gotowka', 'core6', '💵', 'cash', 'gotówka'),
+  word('core-karta', 'core6', '💳', 'card', 'karta'),
+  word('core-portfel', 'core6', '👛', 'wallet', 'portfel'),
+  word('core-bank', 'core6', '🏦', 'bank', 'bank'),
+  word('core-sklep', 'core6', '🏪', 'store', 'sklep'),
+  word('core-paragon', 'core6', '🧾', 'receipt', 'paragon'),
+  word('core-reszta', 'core6', '🪙', 'change', 'reszta'),
+  word('core-darmowy', 'core6', '🆓', 'free', 'darmowy'),
+  word('core-kosztowac', 'core6', '💲', 'to cost', 'kosztować'),
 
   word('num-1', 'numbers', '1️⃣', 'one', 'jeden'),
   word('num-2', 'numbers', '2️⃣', 'two', 'dwa'),

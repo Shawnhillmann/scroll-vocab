@@ -12,6 +12,7 @@ import {
   localizedCategoryShort,
   localizedGroupLabel,
   localizedModeLabel,
+  localizedPracticeModesLabel,
   modes,
   words,
   wordsInCategory,
@@ -241,7 +242,7 @@ app.innerHTML = `
           <div class="choices" data-lang-role="learning"></div>
         </div>
         <div class="field">
-          <label>Practice</label>
+          <label data-gate-label="practiceModes">Practice Modes</label>
           <div class="mode-grid" data-mode-choices></div>
         </div>
         <div class="field">
@@ -265,7 +266,7 @@ app.innerHTML = `
           <div class="choices" data-lang-role="learning"></div>
         </div>
         <div class="field">
-          <label>Practice</label>
+          <label data-gate-label="practiceModes">Practice Modes</label>
           <div class="mode-grid" data-mode-choices></div>
         </div>
         <div class="field">
@@ -482,6 +483,9 @@ function paintModeChoices(root: Element): void {
 }
 
 function refreshGateLabels(): void {
+  document.querySelectorAll<HTMLElement>('[data-gate-label="practiceModes"]').forEach((el) => {
+    el.textContent = localizedPracticeModesLabel(settings.native)
+  })
   categoryGroups.forEach((group) => {
     document.querySelectorAll(`[data-group-label="${group.id}"]`).forEach((el) => {
       el.textContent = localizedGroupLabel(group, settings.native)

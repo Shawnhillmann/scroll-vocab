@@ -3366,6 +3366,106 @@ const EXAMPLES: Record<string, Example[]> = {
     x('Powiedz mi prawdę.', 'Tell me the truth.'),
     x('Prawda jest prosta.', 'The truth is simple.'),
   ],
+  'core-pieniadze': [
+    x('Nie mam pieniędzy.', 'I do not have money.'),
+    x('Pieniądze są w portfelu.', 'The money is in the wallet.'),
+    x('Potrzebuję więcej pieniędzy.', 'I need more money.'),
+  ],
+  'core-dolar': [
+    x('To kosztuje pięć dolarów.', 'It costs five dollars.'),
+    x('Mam jednego dolara.', 'I have one dollar.'),
+    x('Dolar leży na stole.', 'The dollar is on the table.'),
+  ],
+  'core-moneta': [
+    x('Wrzucam monetę do automatu.', 'I put a coin in the machine.'),
+    x('Moneta wypadła z portfela.', 'A coin fell out of the wallet.'),
+    x('Ta moneta jest stara.', 'This coin is old.'),
+  ],
+  'core-zloty': [
+    x('To kosztuje dziesięć złotych.', 'It costs ten zloty.'),
+    x('Mam dwadzieścia złotych.', 'I have twenty zloty.'),
+    x('Złoty leży obok kluczy.', 'The zloty coin is next to the keys.'),
+  ],
+  'core-euro': [
+    x('Płacę trzy euro.', 'I pay three euros.'),
+    x('Mam euro w portfelu.', 'I have euros in my wallet.'),
+    x('Euro jest w kieszeni.', 'The euro is in the pocket.'),
+  ],
+  'core-cena': [
+    x('Jaka jest cena?', 'What is the price?'),
+    x('Cena jest wysoka.', 'The price is high.'),
+    x('Ta cena jest dobra.', 'This price is good.'),
+  ],
+  'core-placic': [
+    x('Płacę kartą.', 'I pay by card.'),
+    x('Chcę zapłacić gotówką.', 'I want to pay in cash.'),
+    x('Kto płaci za obiad?', 'Who pays for lunch?'),
+  ],
+  'core-kupic': [
+    x('Chcę kupić chleb.', 'I want to buy bread.'),
+    x('Kupię to jutro.', 'I will buy it tomorrow.'),
+    x('Gdzie mogę to kupić?', 'Where can I buy this?'),
+  ],
+  'core-sprzedawac': [
+    x('Oni sprzedają owoce.', 'They sell fruit.'),
+    x('Sprzedaję stary telefon.', 'I am selling an old phone.'),
+    x('Ten sklep sprzedaje kawę.', 'This store sells coffee.'),
+  ],
+  'core-tani': [
+    x('Ten chleb jest tani.', 'This bread is cheap.'),
+    x('Szukam taniego hotelu.', 'I am looking for a cheap hotel.'),
+    x('To jest tanie i dobre.', 'This is cheap and good.'),
+  ],
+  'core-drogi': [
+    x('Ten hotel jest drogi.', 'This hotel is expensive.'),
+    x('Droga restauracja jest blisko.', 'The expensive restaurant is nearby.'),
+    x('To za drogie dla mnie.', 'That is too expensive for me.'),
+  ],
+  'core-gotowka': [
+    x('Mam gotówkę w portfelu.', 'I have cash in my wallet.'),
+    x('Czy bierzecie gotówkę?', 'Do you take cash?'),
+    x('Płacę gotówką.', 'I pay with cash.'),
+  ],
+  'core-karta': [
+    x('Płacę kartą.', 'I pay with a card.'),
+    x('Moja karta nie działa.', 'My card does not work.'),
+    x('Gdzie jest moja karta?', 'Where is my card?'),
+  ],
+  'core-portfel': [
+    x('Mój portfel jest w torbie.', 'My wallet is in the bag.'),
+    x('Zgubiłem portfel.', 'I lost my wallet.'),
+    x('W portfelu mam karty.', 'I have cards in my wallet.'),
+  ],
+  'core-bank': [
+    x('Idę do banku.', 'I am going to the bank.'),
+    x('Bank jest obok sklepu.', 'The bank is next to the store.'),
+    x('Bank jest zamknięty dziś.', 'The bank is closed today.'),
+  ],
+  'core-sklep': [
+    x('Sklep jest otwarty.', 'The store is open.'),
+    x('Idę do sklepu po mleko.', 'I am going to the store for milk.'),
+    x('Ten sklep ma dobre ceny.', 'This store has good prices.'),
+  ],
+  'core-paragon': [
+    x('Proszę paragon.', 'Receipt, please.'),
+    x('Paragon jest w torbie.', 'The receipt is in the bag.'),
+    x('Zachowaj paragon.', 'Keep the receipt.'),
+  ],
+  'core-reszta': [
+    x('Proszę resztę.', 'Change, please.'),
+    x('Reszta jest w portfelu.', 'The change is in the wallet.'),
+    x('Nie potrzebuję reszty.', 'I do not need change.'),
+  ],
+  'core-darmowy': [
+    x('Wstęp jest darmowy.', 'Admission is free.'),
+    x('Ten napój jest darmowy.', 'This drink is free.'),
+    x('Czy to jest darmowe?', 'Is this free?'),
+  ],
+  'core-kosztowac': [
+    x('Ile to kosztuje?', 'How much does it cost?'),
+    x('To kosztuje za dużo.', 'It costs too much.'),
+    x('Obiad kosztuje dwadzieścia złotych.', 'Lunch costs twenty zloty.'),
+  ],
 }
 
 export function examplesFor(id: string): Example[] {
