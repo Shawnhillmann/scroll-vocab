@@ -1996,6 +1996,11 @@ mark.tutor-hit {
   flex-shrink: 0;
 }
 
+.tutor.is-keyboard-open .tutor-compose {
+  /* Visual viewport already clears the keyboard; home-indicator inset causes bounce. */
+  padding-bottom: 8px;
+}
+
 .tutor-input {
   flex: 1;
   min-width: 0;

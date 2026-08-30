@@ -193,8 +193,13 @@ let lastTutorTypeSound = 0
 const tutorRepeatCache = new Map<string, string>()
 const tutorMessageViews = new Map<number, { text: string; lang: LangCode }>()
 let tutorRepeatBusyIndex: number | null = null
+let tutorChatStarted = false
 let tutorViewportRaf = 0
-let tutorViewportTrackUntil = 0
+let tutorViewportStableTimer = 0
+let tutorAppliedViewport = { top: 0, left: 0, width: 0, height: 0 }
+let tutorPendingViewport: { top: number; left: number; width: number; height: number } | null =
+  null
+let tutorKnownKeyboardInset = Number(sessionStorage.getItem('slowo-kb-inset') || 0) || 0
 
 prefetchVoices()
 
@@ -586,33 +591,40 @@ tutorInput.addEventListener('pointerdown', (event) => {
   // Focus before Safari's scroll-into-view pass so the page never jumps.
   if (document.activeElement === tutorInput) return
   event.preventDefault()
+  preliftTutorForKeyboard()
   tutorInput.focus({ preventScroll: true })
   pinDocumentScroll()
-  syncTutorViewport()
-  trackTutorViewport(700)
+  syncTutorViewport(true)
   window.requestAnimationFrame(() => {
+    pinDocumentScroll()
     scrollTutorToBottom()
   })
 })
 tutorInput.addEventListener('focus', () => {
+  preliftTutorForKeyboard()
   pinDocumentScroll()
-  syncTutorViewport()
-  trackTutorViewport(900)
+  syncTutorViewport(true)
   window.requestAnimationFrame(() => scrollTutorToBottom())
 })
 tutorInput.addEventListener('blur', () => {
-  trackTutorViewport(400)
+  window.setTimeout(() => {
+    if (document.activeElement === tutorInput || tutor.hidden) return
+    syncTutorViewport(true)
+  }, 180)
 })
 window.visualViewport?.addEventListener('resize', () => {
   if (tutor.hidden) return
   pinDocumentScroll()
-  syncTutorViewport()
-  trackTutorViewport(500)
+  syncTutorViewport(false)
 })
 window.visualViewport?.addEventListener('scroll', () => {
   if (tutor.hidden) return
   pinDocumentScroll()
-  syncTutorViewport()
+  // Keep the overlay pinned to the visual viewport origin without height thrash.
+  const vv = window.visualViewport
+  if (!vv || !tutor.classList.contains('is-viewport-locked')) return
+  tutor.style.top = `${vv.offsetTop}px`
+  tutor.style.left = `${vv.offsetLeft}px`
 })
 tutorThread.addEventListener('click', (event) => {
   const target = event.target as HTMLElement
@@ -2418,6 +2430,7 @@ function openTutor(index: number): void {
 
   tutorContext = ctx
   tutorMessages = []
+  tutorChatStarted = false
   tutorRepeatCache.clear()
   tutorMessageViews.clear()
   tutorRepeatBusyIndex = null
@@ -2436,7 +2449,7 @@ function openTutor(index: number): void {
   renderTutorSuggestions()
   tutor.hidden = false
   pinDocumentScroll()
-  syncTutorViewport()
+  syncTutorViewport(true)
   tutorScroll.scrollTop = 0
   window.setTimeout(() => scrollTutorToBottom(), 80)
 }
@@ -2452,6 +2465,7 @@ function closeTutor(): void {
   tutorBusy = false
   tutorContext = null
   tutorMessages = []
+  tutorChatStarted = false
   tutorRepeatCache.clear()
   tutorMessageViews.clear()
   tutorRepeatBusyIndex = null
@@ -2472,7 +2486,66 @@ function pinDocumentScroll(): void {
   }
 }
 
-function syncTutorViewport(): void {
+function readVisualViewportBox(): { top: number; left: number; width: number; height: number } {
+  const vv = window.visualViewport
+  if (!vv) {
+    return {
+      top: 0,
+      left: 0,
+      width: window.innerWidth,
+      height: window.innerHeight,
+    }
+  }
+  return {
+    top: vv.offsetTop,
+    left: vv.offsetLeft,
+    width: vv.width,
+    height: vv.height,
+  }
+}
+
+function keyboardInsetFor(box: { top: number; height: number }): number {
+  return Math.max(0, window.innerHeight - box.height - box.top)
+}
+
+function applyTutorViewportBox(box: {
+  top: number
+  left: number
+  width: number
+  height: number
+}): void {
+  const inset = keyboardInsetFor(box)
+  if (inset > 120) {
+    tutorKnownKeyboardInset = inset
+    sessionStorage.setItem('slowo-kb-inset', String(Math.round(inset)))
+  }
+
+  tutor.classList.add('is-viewport-locked')
+  tutor.classList.toggle('is-keyboard-open', inset > 40)
+  tutor.style.top = `${box.top}px`
+  tutor.style.left = `${box.left}px`
+  tutor.style.width = `${box.width}px`
+  tutor.style.height = `${box.height}px`
+  tutor.style.right = 'auto'
+  tutor.style.bottom = 'auto'
+  tutorAppliedViewport = box
+}
+
+function preliftTutorForKeyboard(): void {
+  if (!shouldLockTutorToVisualViewport() || tutor.hidden) return
+  if (tutorKnownKeyboardInset < 120) return
+  const box = readVisualViewportBox()
+  // If keyboard isn't open yet, pre-size to the last known open height so compose doesn't jump.
+  if (keyboardInsetFor(box) > 40) return
+  applyTutorViewportBox({
+    top: 0,
+    left: box.left,
+    width: box.width,
+    height: Math.max(240, window.innerHeight - tutorKnownKeyboardInset),
+  })
+}
+
+function syncTutorViewport(force = false): void {
   if (tutor.hidden) {
     clearTutorViewport()
     return
@@ -2482,27 +2555,52 @@ function syncTutorViewport(): void {
     return
   }
 
-  const vv = window.visualViewport
-  if (!vv) return
-
   pinDocumentScroll()
-  tutor.classList.add('is-viewport-locked')
-  tutor.style.top = `${vv.offsetTop}px`
-  tutor.style.left = `${vv.offsetLeft}px`
-  tutor.style.width = `${vv.width}px`
-  tutor.style.height = `${vv.height}px`
-  tutor.style.right = 'auto'
-  tutor.style.bottom = 'auto'
+  const box = readVisualViewportBox()
+
+  if (force) {
+    window.clearTimeout(tutorViewportStableTimer)
+    tutorPendingViewport = null
+    applyTutorViewportBox(box)
+    return
+  }
+
+  const heightDelta = Math.abs(box.height - tutorAppliedViewport.height)
+  const topDelta = Math.abs(box.top - tutorAppliedViewport.top)
+
+  // Tiny jitter: ignore. Large top-only drift: pin immediately without height thrash.
+  if (heightDelta < 2 && topDelta < 2) return
+  if (heightDelta < 2) {
+    tutor.style.top = `${box.top}px`
+    tutor.style.left = `${box.left}px`
+    tutorAppliedViewport = { ...tutorAppliedViewport, top: box.top, left: box.left }
+    return
+  }
+
+  // Height is changing (keyboard animating). Wait until it settles before resizing compose.
+  tutorPendingViewport = box
+  window.clearTimeout(tutorViewportStableTimer)
+  tutorViewportStableTimer = window.setTimeout(() => {
+    if (!tutorPendingViewport || tutor.hidden) return
+    applyTutorViewportBox(tutorPendingViewport)
+    tutorPendingViewport = null
+    scrollTutorToBottom()
+  }, 90)
 }
 
 function clearTutorViewport(): void {
+  window.clearTimeout(tutorViewportStableTimer)
+  tutorPendingViewport = null
+  stopTutorViewportTracking()
   tutor.classList.remove('is-viewport-locked')
+  tutor.classList.remove('is-keyboard-open')
   tutor.style.top = ''
   tutor.style.left = ''
   tutor.style.width = ''
   tutor.style.height = ''
   tutor.style.right = ''
   tutor.style.bottom = ''
+  tutorAppliedViewport = { top: 0, left: 0, width: 0, height: 0 }
 }
 
 function stopTutorViewportTracking(): void {
@@ -2510,38 +2608,17 @@ function stopTutorViewportTracking(): void {
     window.cancelAnimationFrame(tutorViewportRaf)
     tutorViewportRaf = 0
   }
-  tutorViewportTrackUntil = 0
-}
-
-function trackTutorViewport(ms: number): void {
-  tutorViewportTrackUntil = Math.max(tutorViewportTrackUntil, performance.now() + ms)
-  if (tutorViewportRaf) return
-
-  const tick = (): void => {
-    syncTutorViewport()
-    if (performance.now() < tutorViewportTrackUntil && !tutor.hidden) {
-      tutorViewportRaf = window.requestAnimationFrame(tick)
-      return
-    }
-    tutorViewportRaf = 0
-    syncTutorViewport()
-  }
-  tutorViewportRaf = window.requestAnimationFrame(tick)
+  window.clearTimeout(tutorViewportStableTimer)
 }
 
 function renderTutorQuick(): void {
-  if (!tutorContext) {
+  if (!tutorContext || tutorChatStarted || tutorMessages.length > 0) {
     tutorQuick.innerHTML = ''
     tutorQuick.hidden = true
     return
   }
-  const show = tutorMessages.length === 0
-  tutorQuick.hidden = !show
-  if (!show) {
-    tutorQuick.innerHTML = ''
-    return
-  }
   const prompts = tutorQuickStarts(tutorContext)
+  tutorQuick.hidden = false
   tutorQuick.innerHTML = `
     <p class="tutor-section-label">${escapeHtml(tutorQuickSectionLabel(tutorContext.nativeCode))}</p>
     <div class="tutor-quick-list">
@@ -2754,6 +2831,7 @@ async function sendTutorMessage(raw: string): Promise<void> {
   unlockSpeech()
   void unlockSfx()
   tutorInput.value = ''
+  tutorChatStarted = true
   tutorMessages.push({ role: 'user', content: text })
   playTutorSend()
   renderTutorQuick()
@@ -2778,6 +2856,7 @@ async function sendTutorMessage(raw: string): Promise<void> {
     window.clearTimeout(tutorRevealTimer)
     const message = error instanceof Error ? error.message : 'Something went wrong'
     tutorMessages.pop()
+    // Keep quick starts hidden once the user has started chatting.
     renderTutorQuick()
     renderTutorThread()
     appendTutorError(message)
