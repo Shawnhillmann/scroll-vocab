@@ -1,3 +1,5 @@
+import { type LangCode, getLanguage } from './words.ts'
+
 export type TutorRole = 'user' | 'assistant'
 
 export type TutorChatMessage = {
@@ -11,6 +13,8 @@ export type TutorWordContext = {
   emoji: string
   learningLang: string
   nativeLang: string
+  nativeCode: LangCode
+  learningCode: LangCode
   category?: string
 }
 
@@ -19,46 +23,100 @@ export type TutorQuickStart = {
   prompt: string
 }
 
+const TUTOR_QUICK_SECTION: Record<LangCode, string> = {
+  en: 'Quick start',
+  pl: 'Szybki start',
+}
+
+export function tutorQuickSectionLabel(lang: LangCode): string {
+  return TUTOR_QUICK_SECTION[lang] ?? TUTOR_QUICK_SECTION.en
+}
+
+const QUICK_STARTS: Record<LangCode, Array<(word: string) => string>> = {
+  en: [
+    (w) => `What are common phrases with ${w}?`,
+    (w) => `What are the common forms or conjugations of ${w}?`,
+    (w) => `What words are similar to ${w}?`,
+    (w) => `List out all forms or conjugations of ${w}?`,
+  ],
+  pl: [
+    (w) => `Jakie są typowe zwroty z „${w}”?`,
+    (w) => `Jakie są typowe formy lub odmiany „${w}”?`,
+    (w) => `Jakie słowa są podobne do „${w}”?`,
+    (w) => `Wypisz wszystkie formy lub odmiany „${w}”.`,
+  ],
+}
+
 export function tutorQuickStarts(ctx: TutorWordContext): TutorQuickStart[] {
   const w = ctx.learning
-  return [
-    {
-      label: 'Common phrases with this word',
-      prompt: `What are common phrases with ${w}?`,
-    },
-    {
-      label: 'Common forms of this word',
-      prompt: `What are the common forms of ${w}?`,
-    },
-    {
-      label: 'Words with similar meaning',
-      prompt: `What words have a similar meaning to ${w}?`,
-    },
-    {
-      label: 'Words with opposite meaning',
-      prompt: `What words have the opposite meaning of ${w}?`,
-    },
-  ]
+  const items = QUICK_STARTS[ctx.nativeCode] ?? QUICK_STARTS.en
+  return items.map((prompt) => {
+    const text = prompt(w)
+    return { label: text, prompt: text }
+  })
+}
+
+const FOLLOW_UPS: Record<LangCode, Array<(word: string) => string>> = {
+  en: [
+    (w) => `How do I use ${w} in a sentence?`,
+    (w) => `Is ${w} formal or informal?`,
+    (w) => `What's a common mistake with ${w}?`,
+  ],
+  pl: [
+    (w) => `Jak użyć „${w}” w zdaniu?`,
+    (w) => `Czy „${w}” jest formalne czy nieformalne?`,
+    (w) => `Jaki jest częsty błąd z „${w}”?`,
+  ],
 }
 
 export function tutorFollowUps(ctx: TutorWordContext): string[] {
   const w = ctx.learning
-  return [
-    `How do I use ${w} in a sentence?`,
-    `Is ${w} formal or informal?`,
-    `What's a common mistake with ${w}?`,
-  ]
+  const items = FOLLOW_UPS[ctx.nativeCode] ?? FOLLOW_UPS.en
+  return items.map((fn) => fn(w))
 }
 
-export function tutorSystemPrompt(ctx: TutorWordContext): string {
+const POLISH_CHARS = /[ąćęłńóśźż]/i
+const POLISH_WORDS =
+  /\b(jak|co|czy|nie|jest|się|proszę|pomoc|pomóż|lubię|chcę|mogę|mnie|mi|dla|tego|słowa|słowo|znaczy|użyj|użyć|formy|odmiany|podobne|zwrot|zwroty|typowe|jaki|jaka|jakie|częsty|błąd|formalne|nieformalne)\b/i
+const ENGLISH_WORDS =
+  /\b(what|how|help|me|with|the|is|are|can|please|word|phrase|similar|form|conjugat|else|know|about|mean|use|sentence|formal|informal|mistake|common|should)\b/i
+
+/** Guess which language the learner wrote in (en/pl). */
+export function detectMessageLanguage(text: string): LangCode | null {
+  const trimmed = text.trim()
+  if (!trimmed) return null
+
+  let polishScore = 0
+  let englishScore = 0
+  if (POLISH_CHARS.test(trimmed)) polishScore += 3
+  if (POLISH_WORDS.test(trimmed)) polishScore += 2
+  if (ENGLISH_WORDS.test(trimmed)) englishScore += 2
+
+  if (polishScore > englishScore) return 'pl'
+  if (englishScore > polishScore) return 'en'
+  return null
+}
+
+/** Language the tutor should reply in for this user message. */
+export function tutorReplyLanguage(ctx: TutorWordContext, userMessage: string): LangCode {
+  return detectMessageLanguage(userMessage) ?? ctx.nativeCode
+}
+
+export function tutorSystemPrompt(ctx: TutorWordContext, replyLang: LangCode): string {
+  const replyLabel = getLanguage(replyLang).label
+  const inLearningLang = replyLang === ctx.learningCode
+
   return [
     `You are the AI tutor inside Słowo, a mobile vocabulary app.`,
     `The learner's native language is ${ctx.nativeLang}; they are learning ${ctx.learningLang}.`,
     `Focus on this word: ${ctx.learning} (${ctx.native})${ctx.emoji ? ` ${ctx.emoji}` : ''}.`,
     ctx.category ? `Category: ${ctx.category}.` : '',
+    `You MUST write your entire reply in ${replyLabel}. Do not switch languages mid-reply.`,
+    inLearningLang
+      ? `The learner is practicing in ${ctx.learningLang}—explain fully in ${replyLabel}. Add ${ctx.nativeLang} glosses in parentheses only when it helps.`
+      : `The learner is asking in ${replyLabel}—explain in ${replyLabel}. Include at most 1–2 brief example phrases in ${ctx.learningLang} with ${ctx.nativeLang} in parentheses when helpful.`,
     `Keep every reply under 300 characters total.`,
     `Keep answers short and practical (1–3 short sentences max).`,
-    `Include at most 1–2 brief example phrases in ${ctx.learningLang} with ${ctx.nativeLang} in parentheses.`,
     `Write plain text only. Use simple hyphen bullets for examples if needed.`,
     `Do not use markdown: no **, __, #, backticks, or code fences.`,
     `Do not change font emphasis with symbols — just write normally.`,

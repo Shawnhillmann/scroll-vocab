@@ -52,7 +52,9 @@ import {
   askTutor,
   formatTutorHtml,
   tutorFollowUps,
+  tutorQuickSectionLabel,
   tutorQuickStarts,
+  tutorReplyLanguage,
   tutorSystemPrompt,
   type TutorChatMessage,
   type TutorWordContext,
@@ -184,7 +186,6 @@ let tutorRevealGen = 0
 let tutorRevealTimer = 0
 let tutorPendingSoundTimer = 0
 let lastTutorTypeSound = 0
-const tutorHistory = new Map<string, TutorChatMessage[]>()
 
 prefetchVoices()
 
@@ -2233,10 +2234,6 @@ function closeSettings(): void {
   }
 }
 
-function tutorHistoryKey(ctx: TutorWordContext): string {
-  return `${settings.learning}|${settings.native}|${ctx.learning}|${ctx.native}|${ctx.category ?? ''}`
-}
-
 function contextForTutor(index: number): TutorWordContext | null {
   const category = settings.category ? getCategory(settings.category) : null
   const learningLang = getLanguage(settings.learning).label
@@ -2252,6 +2249,8 @@ function contextForTutor(index: number): TutorWordContext | null {
       emoji: sheetItem.emoji,
       learningLang,
       nativeLang,
+      nativeCode: settings.native,
+      learningCode: settings.learning,
       category: category?.label,
     }
   }
@@ -2264,6 +2263,8 @@ function contextForTutor(index: number): TutorWordContext | null {
     emoji: word.emoji,
     learningLang,
     nativeLang,
+    nativeCode: settings.native,
+    learningCode: settings.learning,
     category: category?.label,
   }
 }
@@ -2285,11 +2286,11 @@ function openTutor(index: number): void {
   exampleWaiting = false
 
   tutorContext = ctx
-  const key = tutorHistoryKey(ctx)
-  tutorMessages = [...(tutorHistory.get(key) ?? [])]
+  tutorMessages = []
   tutorBusy = false
   tutorSend.disabled = false
   tutorInput.disabled = false
+  tutorInput.value = ''
   tutorInput.placeholder = `Ask anything about ${ctx.learning}…`
   qs('#tutor-word').textContent = ctx.learning
   qs('#tutor-native').textContent = ctx.native
@@ -2302,9 +2303,6 @@ function openTutor(index: number): void {
 }
 
 function closeTutor(): void {
-  if (tutorContext) {
-    tutorHistory.set(tutorHistoryKey(tutorContext), [...tutorMessages])
-  }
   tutorRevealGen += 1
   window.clearTimeout(tutorRevealTimer)
   stopTutorPendingSounds()
@@ -2312,6 +2310,8 @@ function closeTutor(): void {
   tutor.hidden = true
   tutorBusy = false
   tutorContext = null
+  tutorMessages = []
+  tutorInput.value = ''
   tutorInput.blur()
 }
 
@@ -2329,7 +2329,7 @@ function renderTutorQuick(): void {
   }
   const prompts = tutorQuickStarts(tutorContext)
   tutorQuick.innerHTML = `
-    <p class="tutor-section-label">Quick start</p>
+    <p class="tutor-section-label">${escapeHtml(tutorQuickSectionLabel(tutorContext.nativeCode))}</p>
     <div class="tutor-quick-list">
       ${prompts
         .map(
@@ -2478,12 +2478,12 @@ async function sendTutorMessage(raw: string): Promise<void> {
   setTutorBusy(true)
 
   try {
-    const reply = await askTutor(tutorSystemPrompt(tutorContext), tutorMessages)
+    const replyLang = tutorReplyLanguage(tutorContext, text)
+    const reply = await askTutor(tutorSystemPrompt(tutorContext, replyLang), tutorMessages)
     stopTutorPendingSounds()
     tutorMessages.push({ role: 'assistant', content: reply })
     const msgIndex = tutorMessages.length - 1
     await revealTutorReply(reply, msgIndex)
-    tutorHistory.set(tutorHistoryKey(tutorContext), [...tutorMessages])
     renderTutorSuggestions()
   } catch (error) {
     removeTutorPending()

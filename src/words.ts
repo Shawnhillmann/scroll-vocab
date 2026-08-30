@@ -1,7 +1,15 @@
 import { examplesFor, type Example } from './examples.ts'
 
 export type LangCode = 'en' | 'pl'
-export type CategoryGroupId = 'core' | 'nouns' | 'verbs' | 'modifiers' | 'conjugations'
+export type CategoryGroupId =
+  | 'core'
+  | 'everyday'
+  | 'people'
+  | 'world'
+  | 'actions'
+  | 'describing'
+  | 'time'
+  | 'conjugations'
 export type CategoryId =
   | 'core1'
   | 'core2'
@@ -68,6 +76,7 @@ export type LanguageOption = {
 export type CategoryGroup = {
   id: CategoryGroupId
   label: string
+  emoji: string
 }
 
 export type Category = {
@@ -109,56 +118,67 @@ export const languages: LanguageOption[] = [
 ]
 
 export const categoryGroups: CategoryGroup[] = [
-  { id: 'core', label: 'Core' },
-  { id: 'nouns', label: 'Nouns' },
-  { id: 'verbs', label: 'Verbs' },
-  { id: 'modifiers', label: 'Adjectives & Adverbs' },
-  { id: 'conjugations', label: 'Conjugations' },
+  { id: 'core', emoji: '⭐', label: 'CORE' },
+  { id: 'everyday', emoji: '🏠', label: 'EVERYDAY LIFE' },
+  { id: 'people', emoji: '👤', label: 'PEOPLE & ME' },
+  { id: 'world', emoji: '🌎', label: 'WORLD AROUND ME' },
+  { id: 'actions', emoji: '🏃', label: 'ACTIONS' },
+  { id: 'describing', emoji: '🎨', label: 'DESCRIBING THINGS' },
+  { id: 'time', emoji: '🕐', label: 'TIME & NUMBERS' },
+  { id: 'conjugations', emoji: '🔄', label: 'VERB FORMS' },
 ]
 
 export const categories: Category[] = [
+  // ⭐ CORE
   { id: 'core1', group: 'core', label: 'Core Words 1', short: 'Core 1', emoji: '1️⃣', tint: '#241c28' },
   { id: 'core2', group: 'core', label: 'Core Words 2', short: 'Core 2', emoji: '2️⃣', tint: '#221c2a' },
   { id: 'core3', group: 'core', label: 'Core Words 3', short: 'Core 3', emoji: '3️⃣', tint: '#201c2c' },
   { id: 'core4', group: 'core', label: 'Core Words 4', short: 'Core 4', emoji: '4️⃣', tint: '#1e1c2e' },
   { id: 'core5', group: 'core', label: 'Core Words 5', short: 'Core 5', emoji: '5️⃣', tint: '#1c1c30' },
-  { id: 'numbers', group: 'core', label: 'Numbers', short: 'Numbers', emoji: '🔢', tint: '#1a1c32' },
-  { id: 'days', group: 'core', label: 'Days of the week', short: 'Days', emoji: '📅', tint: '#1c2034' },
-  { id: 'months', group: 'core', label: 'Months', short: 'Months', emoji: '🗓️', tint: '#1e1830' },
-  { id: 'clock', group: 'core', label: 'Time of day', short: 'Hours', emoji: '⏰', tint: '#18202e' },
-  { id: 'kitchen', group: 'nouns', label: 'Kitchen', short: 'Kitchen', emoji: '🍳', tint: '#3a2418' },
-  { id: 'furniture', group: 'nouns', label: 'Furniture', short: 'Furniture', emoji: '🛋️', tint: '#2c241c' },
-  { id: 'home', group: 'nouns', label: 'Home', short: 'Home', emoji: '🏠', tint: '#2a2218' },
-  { id: 'fruit', group: 'nouns', label: 'Fruit', short: 'Fruit', emoji: '🍎', tint: '#3a2018' },
-  { id: 'food', group: 'nouns', label: 'Food', short: 'Food', emoji: '🍽️', tint: '#3a2418' },
-  { id: 'drinks', group: 'nouns', label: 'Drinks & sweets', short: 'Drinks & sweets', emoji: '☕', tint: '#301c14' },
-  { id: 'animals', group: 'nouns', label: 'Pets & farm', short: 'Pets & farm', emoji: '🐶', tint: '#243018' },
-  { id: 'wild', group: 'nouns', label: 'Wild animals', short: 'Wild animals', emoji: '🦁', tint: '#2a2814' },
-  { id: 'creatures', group: 'nouns', label: 'Sea & bugs', short: 'Sea & bugs', emoji: '🐙', tint: '#182830' },
-  { id: 'transport', group: 'nouns', label: 'Transport', short: 'Transport', emoji: '🚗', tint: '#1a2430' },
-  { id: 'city', group: 'nouns', label: 'Places', short: 'Places', emoji: '🏙️', tint: '#1c2030' },
-  { id: 'streets', group: 'nouns', label: 'Travel', short: 'Travel', emoji: '🧳', tint: '#182028' },
-  { id: 'people', group: 'nouns', label: 'Family', short: 'Family', emoji: '👪', tint: '#3a2820' },
-  { id: 'jobs', group: 'nouns', label: 'Jobs', short: 'Jobs', emoji: '💼', tint: '#2c2218' },
-  { id: 'face', group: 'nouns', label: 'Face', short: 'Face', emoji: '🙂', tint: '#301820' },
-  { id: 'body', group: 'nouns', label: 'Body', short: 'Body', emoji: '💪', tint: '#2c1820' },
-  { id: 'health', group: 'nouns', label: 'Health', short: 'Health', emoji: '💊', tint: '#30181c' },
-  { id: 'clothing', group: 'nouns', label: 'Clothes', short: 'Clothes', emoji: '👕', tint: '#2c2030' },
-  { id: 'accessories', group: 'nouns', label: 'Accessories', short: 'Accessories', emoji: '👜', tint: '#282030' },
-  { id: 'weather', group: 'nouns', label: 'Weather', short: 'Weather', emoji: '🌧️', tint: '#1c242c' },
-  { id: 'nature', group: 'nouns', label: 'Nature', short: 'Nature', emoji: '🌿', tint: '#1c2c18' },
-  { id: 'actions', group: 'verbs', label: 'Everyday', short: 'Everyday', emoji: '🚶', tint: '#242018' },
-  { id: 'doing', group: 'verbs', label: 'Actions', short: 'Actions', emoji: '🔎', tint: '#282418' },
-  { id: 'motion', group: 'verbs', label: 'Movement', short: 'Movement', emoji: '🏃', tint: '#2a2414' },
-  { id: 'social', group: 'verbs', label: 'People & mind', short: 'People & mind', emoji: '💬', tint: '#2c2018' },
-  { id: 'chores', group: 'verbs', label: 'Home verbs', short: 'Home verbs', emoji: '🧹', tint: '#262018' },
-  { id: 'descriptions', group: 'modifiers', label: 'Feelings', short: 'Feelings', emoji: '😊', tint: '#302028' },
-  { id: 'size', group: 'modifiers', label: 'Qualities', short: 'Qualities', emoji: '📏', tint: '#282020' },
-  { id: 'colors', group: 'modifiers', label: 'Colors', short: 'Colors', emoji: '🎨', tint: '#2a1828' },
-  { id: 'looks', group: 'modifiers', label: 'Appearance', short: 'Appearance', emoji: '🪞', tint: '#2c1824' },
-  { id: 'manner', group: 'modifiers', label: 'Manner', short: 'Manner', emoji: '🧭', tint: '#241c28' },
-  { id: 'timing', group: 'modifiers', label: 'Time & frequency', short: 'Time', emoji: '🕒', tint: '#1c242c' },
-  { id: 'degree', group: 'modifiers', label: 'Degree', short: 'Degree', emoji: '📶', tint: '#201c2a' },
+  // 🏠 EVERYDAY LIFE
+  { id: 'kitchen', group: 'everyday', label: 'Kitchen', short: 'Kitchen', emoji: '🍳', tint: '#3a2418' },
+  { id: 'furniture', group: 'everyday', label: 'Furniture', short: 'Furniture', emoji: '🛋️', tint: '#2c241c' },
+  { id: 'home', group: 'everyday', label: 'Home', short: 'Home', emoji: '🏠', tint: '#2a2218' },
+  { id: 'food', group: 'everyday', label: 'Food', short: 'Food', emoji: '🍽️', tint: '#3a2418' },
+  { id: 'fruit', group: 'everyday', label: 'Fruit', short: 'Fruit', emoji: '🍎', tint: '#3a2018' },
+  { id: 'drinks', group: 'everyday', label: 'Drinks & Sweets', short: 'Drinks & Sweets', emoji: '☕', tint: '#301c14' },
+  { id: 'clothing', group: 'everyday', label: 'Clothes', short: 'Clothes', emoji: '👕', tint: '#2c2030' },
+  { id: 'accessories', group: 'everyday', label: 'Accessories', short: 'Accessories', emoji: '👜', tint: '#282030' },
+  { id: 'chores', group: 'everyday', label: 'Home Verbs', short: 'Home Verbs', emoji: '🧹', tint: '#262018' },
+  // 👤 PEOPLE & ME
+  { id: 'people', group: 'people', label: 'Family', short: 'Family', emoji: '👪', tint: '#3a2820' },
+  { id: 'jobs', group: 'people', label: 'Jobs', short: 'Jobs', emoji: '💼', tint: '#2c2218' },
+  { id: 'face', group: 'people', label: 'Face', short: 'Face', emoji: '🙂', tint: '#301820' },
+  { id: 'body', group: 'people', label: 'Body', short: 'Body', emoji: '💪', tint: '#2c1820' },
+  { id: 'health', group: 'people', label: 'Health', short: 'Health', emoji: '💊', tint: '#30181c' },
+  { id: 'descriptions', group: 'people', label: 'Feelings', short: 'Feelings', emoji: '😊', tint: '#302028' },
+  { id: 'looks', group: 'people', label: 'Appearance', short: 'Appearance', emoji: '🪞', tint: '#2c1824' },
+  // 🌎 WORLD AROUND ME
+  { id: 'animals', group: 'world', label: 'Pets & Farm', short: 'Pets & Farm', emoji: '🐶', tint: '#243018' },
+  { id: 'wild', group: 'world', label: 'Wild Animals', short: 'Wild Animals', emoji: '🦁', tint: '#2a2814' },
+  { id: 'creatures', group: 'world', label: 'Sea & Bugs', short: 'Sea & Bugs', emoji: '🐙', tint: '#182830' },
+  { id: 'transport', group: 'world', label: 'Transport', short: 'Transport', emoji: '🚗', tint: '#1a2430' },
+  { id: 'city', group: 'world', label: 'Places', short: 'Places', emoji: '🏙️', tint: '#1c2030' },
+  { id: 'streets', group: 'world', label: 'Travel', short: 'Travel', emoji: '🧳', tint: '#182028' },
+  { id: 'weather', group: 'world', label: 'Weather', short: 'Weather', emoji: '🌧️', tint: '#1c242c' },
+  { id: 'nature', group: 'world', label: 'Nature', short: 'Nature', emoji: '🌿', tint: '#1c2c18' },
+  // 🏃 ACTIONS
+  { id: 'actions', group: 'actions', label: 'Everyday', short: 'Everyday', emoji: '🚶', tint: '#242018' },
+  { id: 'doing', group: 'actions', label: 'Actions', short: 'Actions', emoji: '🔎', tint: '#282418' },
+  { id: 'motion', group: 'actions', label: 'Movement', short: 'Movement', emoji: '🏃', tint: '#2a2414' },
+  { id: 'social', group: 'actions', label: 'People & Mind', short: 'People & Mind', emoji: '💬', tint: '#2c2018' },
+  // 🎨 DESCRIBING THINGS
+  { id: 'size', group: 'describing', label: 'Qualities', short: 'Qualities', emoji: '📏', tint: '#282020' },
+  { id: 'colors', group: 'describing', label: 'Colors', short: 'Colors', emoji: '🎨', tint: '#2a1828' },
+  { id: 'manner', group: 'describing', label: 'Manner', short: 'Manner', emoji: '🧭', tint: '#241c28' },
+  { id: 'degree', group: 'describing', label: 'Degree', short: 'Degree', emoji: '📶', tint: '#201c2a' },
+  // 🕐 TIME & NUMBERS
+  { id: 'numbers', group: 'time', label: 'Numbers', short: 'Numbers', emoji: '🔢', tint: '#1a1c32' },
+  { id: 'days', group: 'time', label: 'Days of the week', short: 'Days', emoji: '📅', tint: '#1c2034' },
+  { id: 'months', group: 'time', label: 'Months', short: 'Months', emoji: '🗓️', tint: '#1e1830' },
+  { id: 'clock', group: 'time', label: 'Time of day', short: 'Hours', emoji: '⏰', tint: '#18202e' },
+  { id: 'timing', group: 'time', label: 'Time & frequency', short: 'Time', emoji: '🕒', tint: '#1c242c' },
+  // 🔄 VERB FORMS
   {
     id: 'conj-present',
     group: 'conjugations',
@@ -217,11 +237,14 @@ function tintFor(category: CategoryId): string {
 }
 
 const GROUP_LABEL_PL: Record<CategoryGroupId, string> = {
-  core: 'Podstawy',
-  nouns: 'Rzeczowniki',
-  verbs: 'Czasowniki',
-  modifiers: 'Przymiotniki i przysłówki',
-  conjugations: 'Koniugacje',
+  core: 'PODSTAWY',
+  everyday: 'CODZIENNE ŻYCIE',
+  people: 'JA I LUDZIE',
+  world: 'ŚWIAT WOKÓŁ',
+  actions: 'CZYNNOŚCI',
+  describing: 'OPISYWANIE',
+  time: 'CZAS I LICZBY',
+  conjugations: 'FORMY CZASOWNIKÓW',
 }
 
 const CATEGORY_SHORT_PL: Record<CategoryId, string> = {
@@ -240,7 +263,7 @@ const CATEGORY_SHORT_PL: Record<CategoryId, string> = {
   fruit: 'Owoce',
   food: 'Jedzenie',
   drinks: 'Napoje i słodycze',
-  animals: 'Zwierzęta',
+  animals: 'Zwierzęta domowe',
   wild: 'Dzika przyroda',
   creatures: 'Morze i owady',
   transport: 'Transport',
@@ -259,7 +282,7 @@ const CATEGORY_SHORT_PL: Record<CategoryId, string> = {
   doing: 'Czynności',
   motion: 'Ruch',
   social: 'Ludzie i umysł',
-  chores: 'Domowe',
+  chores: 'Czasowniki domowe',
   descriptions: 'Uczucia',
   size: 'Cechy',
   colors: 'Kolory',
@@ -282,7 +305,8 @@ const MODE_LABEL_PL: Record<ModeId, string> = {
 }
 
 export function localizedGroupLabel(group: CategoryGroup, lang: LangCode): string {
-  return lang === 'pl' ? (GROUP_LABEL_PL[group.id] ?? group.label) : group.label
+  const label = lang === 'pl' ? (GROUP_LABEL_PL[group.id] ?? group.label) : group.label
+  return `${group.emoji} ${label}`
 }
 
 export function localizedCategoryShort(category: Category, lang: LangCode): string {
