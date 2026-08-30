@@ -55,7 +55,9 @@ import {
   detectMessageLanguage,
   formatTutorHtml,
   tutorFollowUps,
+  tutorGateLabel,
   tutorListenLabel,
+  tutorTranslatingLabel,
   tutorQuickSectionLabel,
   tutorQuickStarts,
   tutorReplyLanguage,
@@ -257,6 +259,10 @@ app.innerHTML = `
         <div class="field">
           <label data-gate-label="practiceModes">Practice Modes</label>
           <div class="mode-grid" data-mode-choices></div>
+          <button class="gate-tutor" type="button" data-gate-tutor>
+            <span class="gate-tutor-icon" aria-hidden="true">✦</span>
+            <span class="gate-tutor-label" data-gate-label="tutor">AI Tutor</span>
+          </button>
         </div>
         <div class="field">
           <label>Category</label>
@@ -281,6 +287,10 @@ app.innerHTML = `
         <div class="field">
           <label data-gate-label="practiceModes">Practice Modes</label>
           <div class="mode-grid" data-mode-choices></div>
+          <button class="gate-tutor" type="button" data-gate-tutor>
+            <span class="gate-tutor-icon" aria-hidden="true">✦</span>
+            <span class="gate-tutor-label" data-gate-label="tutor">AI Tutor</span>
+          </button>
         </div>
         <div class="field">
           <label>Category</label>
@@ -499,6 +509,9 @@ function refreshGateLabels(): void {
   document.querySelectorAll<HTMLElement>('[data-gate-label="practiceModes"]').forEach((el) => {
     el.textContent = localizedPracticeModesLabel(settings.native)
   })
+  document.querySelectorAll<HTMLElement>('[data-gate-label="tutor"]').forEach((el) => {
+    el.textContent = tutorGateLabel(settings.native)
+  })
   categoryGroups.forEach((group) => {
     document.querySelectorAll(`[data-group-label="${group.id}"]`).forEach((el) => {
       el.textContent = localizedGroupLabel(group, settings.native)
@@ -572,6 +585,11 @@ qs('#learn-done-type').addEventListener('click', () => {
 })
 
 qs('#tutor-back').addEventListener('click', closeTutor)
+document.querySelectorAll('[data-gate-tutor]').forEach((button) => {
+  button.addEventListener('click', () => {
+    openGeneralTutor()
+  })
+})
 tutorForm.addEventListener('submit', (event) => {
   event.preventDefault()
   void sendTutorMessage(tutorInput.value)
@@ -2412,6 +2430,63 @@ function contextForTutor(index: number): TutorWordContext | null {
   }
 }
 
+function generalTutorContext(): TutorWordContext {
+  const learningLang = getLanguage(settings.learning)
+  const nativeLang = getLanguage(settings.native)
+  return {
+    learning: learningLang.nativeName,
+    native: nativeLang.nativeName,
+    emoji: '✦',
+    learningLang: learningLang.label,
+    nativeLang: nativeLang.label,
+    nativeCode: settings.native,
+    learningCode: settings.learning,
+    topic: 'general',
+  }
+}
+
+function openGeneralTutor(): void {
+  if (!sheet.hidden) closeSettings()
+
+  unlockSpeech()
+  stopSpeech()
+  window.clearTimeout(speakTimer)
+  window.clearTimeout(revealTimer)
+  window.clearTimeout(learnSpokenTimer)
+  window.clearTimeout(payoffTimer)
+  window.clearTimeout(advanceTimer)
+  learnGeneration += 1
+  learnSpokenGen += 1
+  skipCurrentRing = null
+  exampleWaiting = false
+
+  const ctx = generalTutorContext()
+  tutorContext = ctx
+  tutorMessages = []
+  tutorChatStarted = false
+  tutorRepeatCache.clear()
+  tutorMessageViews.clear()
+  tutorRepeatBusyIndex = null
+  tutorBusy = false
+  tutorSend.disabled = false
+  tutorInput.disabled = false
+  tutorInput.value = ''
+  tutorInput.placeholder =
+    settings.native === 'pl'
+      ? `Zadaj pytanie o ${ctx.learningLang}…`
+      : `Ask anything about ${ctx.learningLang}…`
+  qs('#tutor-word').textContent = tutorGateLabel(settings.native)
+  qs('#tutor-native').textContent = ctx.learningLang
+  renderTutorQuick()
+  renderTutorThread()
+  renderTutorSuggestions()
+  tutor.hidden = false
+  pinDocumentScroll()
+  syncTutorViewport(true)
+  tutorScroll.scrollTop = 0
+  window.setTimeout(() => scrollTutorToBottom(), 80)
+}
+
 function openTutor(index: number): void {
   const ctx = contextForTutor(index)
   if (!ctx) return
@@ -2683,18 +2758,55 @@ function tutorAssistantRowHtml(content: string, index: number, innerHtml?: strin
     </div>`
 }
 
+function tutorTypingDotsHtml(ariaLabel: string): string {
+  return `<span class="tutor-typing-dots" aria-label="${escapeHtml(ariaLabel)}"><span></span><span></span><span></span></span>`
+}
+
 function setTutorMessageView(index: number, text: string, lang: LangCode): void {
   tutorMessageViews.set(index, { text, lang })
   const row = tutorThread.querySelector<HTMLElement>(`[data-tutor-msg="${index}"]`)
   const bubble = row?.querySelector<HTMLElement>('.tutor-bubble-assistant')
-  if (bubble) bubble.innerHTML = formatTutorHtml(text, tutorContext?.learning)
+  if (bubble) {
+    bubble.classList.remove('tutor-pending', 'tutor-lang-pending')
+    bubble.removeAttribute('aria-label')
+    bubble.innerHTML = formatTutorHtml(text, tutorContext?.learning)
+  }
+  row?.classList.remove('is-lang-loading')
+  row?.querySelectorAll('.tutor-lang-btn.is-loading').forEach((button) => {
+    button.classList.remove('is-loading')
+  })
 }
 
-function setTutorRepeatBusy(index: number | null): void {
+function setTutorRepeatBusy(index: number | null, targetLang?: LangCode): void {
   tutorRepeatBusyIndex = index
+  tutorThread.querySelectorAll('.tutor-row-assistant.is-lang-loading').forEach((row) => {
+    row.classList.remove('is-lang-loading')
+  })
+  tutorThread.querySelectorAll('.tutor-lang-btn.is-loading').forEach((button) => {
+    button.classList.remove('is-loading')
+  })
   tutorThread.querySelectorAll<HTMLButtonElement>('[data-tutor-speak], [data-tutor-repeat]').forEach((button) => {
     button.disabled = index !== null
   })
+
+  if (index === null) return
+
+  const row = tutorThread.querySelector<HTMLElement>(`[data-tutor-msg="${index}"]`)
+  const bubble = row?.querySelector<HTMLElement>('.tutor-bubble-assistant')
+  if (!bubble || !row) return
+
+  row.classList.add('is-lang-loading')
+  bubble.classList.add('tutor-pending', 'tutor-lang-pending')
+  bubble.setAttribute('aria-label', tutorTranslatingLabel(settings.native))
+  bubble.innerHTML = tutorTypingDotsHtml(tutorTranslatingLabel(settings.native))
+
+  if (targetLang) {
+    row
+      .querySelector<HTMLButtonElement>(
+        `[data-tutor-repeat="${index}"][data-tutor-lang="${targetLang}"]`,
+      )
+      ?.classList.add('is-loading')
+  }
 }
 
 function attachTutorMessageActions(row: HTMLElement, index: number): void {
@@ -2737,24 +2849,36 @@ async function repeatTutorMessage(index: number, lang: LangCode): Promise<void> 
   const message = tutorMessages[index]
   if (!message || message.role !== 'assistant' || !tutorContext || tutor.hidden) return
 
-  const cacheKey = `${index}|${lang}`
+  const view = tutorMessageViews.get(index)
+  if (view?.lang === lang) return
+
+  const source = view?.text ?? message.content
+  const cacheKey = `${index}|${lang}|${source}`
   let text = tutorRepeatCache.get(cacheKey)
 
-  if (!text && detectMessageLanguage(message.content) === lang) {
-    text = message.content
-  }
-
   if (!text) {
-    setTutorRepeatBusy(index)
+    setTutorRepeatBusy(index, lang)
+    startTutorPendingSounds()
     try {
-      text = await askTutorRepeat(tutorContext, message.content, lang)
+      text = await askTutorRepeat(tutorContext, source, lang)
       tutorRepeatCache.set(cacheKey, text)
     } catch (error) {
       const errMsg = error instanceof Error ? error.message : 'Something went wrong'
+      const previous = tutorMessageViews.get(index)
+      if (previous) {
+        setTutorMessageView(index, previous.text, previous.lang)
+      } else {
+        setTutorMessageView(
+          index,
+          message.content,
+          detectMessageLanguage(message.content) ?? settings.native,
+        )
+      }
       appendTutorError(errMsg)
       scrollTutorToBottom()
       return
     } finally {
+      stopTutorPendingSounds()
       setTutorRepeatBusy(null)
     }
   }
@@ -2874,7 +2998,7 @@ function appendTutorPending(): void {
     `<div class="tutor-row-assistant" data-tutor-pending>
       <span class="tutor-avatar" aria-hidden="true">✦</span>
       <div class="tutor-bubble tutor-bubble-assistant tutor-pending" aria-label="Tutor is typing">
-        <span class="tutor-typing-dots"><span></span><span></span><span></span></span>
+        ${tutorTypingDotsHtml('Tutor is typing')}
       </div>
     </div>`,
   )

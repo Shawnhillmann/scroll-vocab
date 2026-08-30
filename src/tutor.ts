@@ -7,7 +7,7 @@ export type TutorChatMessage = {
   content: string
 }
 
-export type TutorTopic = 'word' | 'conjugations'
+export type TutorTopic = 'word' | 'conjugations' | 'general'
 
 export type TutorWordContext = {
   learning: string
@@ -63,7 +63,33 @@ const CONJUGATION_QUICK_STARTS: Record<LangCode, string[]> = {
   ],
 }
 
+const GENERAL_QUICK_STARTS: Record<LangCode, string[]> = {
+  en: [
+    'Help me practice vocabulary',
+    'Explain a grammar concept',
+    'What should I study next?',
+  ],
+  pl: [
+    'Pomóż mi ćwiczyć słownictwo',
+    'Wytłumacz mi zagadnienie gramatyczne',
+    'Co powinienem uczyć się dalej?',
+  ],
+}
+
+const TUTOR_GATE_LABEL: Record<LangCode, string> = {
+  en: 'AI Tutor',
+  pl: 'Korepetytor AI',
+}
+
+export function tutorGateLabel(lang: LangCode): string {
+  return TUTOR_GATE_LABEL[lang] ?? TUTOR_GATE_LABEL.en
+}
+
 export function tutorQuickStarts(ctx: TutorWordContext): TutorQuickStart[] {
+  if (ctx.topic === 'general') {
+    const items = GENERAL_QUICK_STARTS[ctx.nativeCode] ?? GENERAL_QUICK_STARTS.en
+    return items.map((text) => ({ label: text, prompt: text }))
+  }
   if (ctx.topic === 'conjugations') {
     const items = CONJUGATION_QUICK_STARTS[ctx.nativeCode] ?? CONJUGATION_QUICK_STARTS.en
     return items.map((text) => ({ label: text, prompt: text }))
@@ -102,7 +128,23 @@ const CONJUGATION_FOLLOW_UPS: Record<LangCode, string[]> = {
   ],
 }
 
+const GENERAL_FOLLOW_UPS: Record<LangCode, string[]> = {
+  en: [
+    'Give me a short practice exercise',
+    'What is a common beginner mistake?',
+    'How can I remember new words better?',
+  ],
+  pl: [
+    'Daj mi krótkie ćwiczenie',
+    'Jaki jest częsty błąd początkujących?',
+    'Jak lepiej zapamiętywać nowe słowa?',
+  ],
+}
+
 export function tutorFollowUps(ctx: TutorWordContext): string[] {
+  if (ctx.topic === 'general') {
+    return GENERAL_FOLLOW_UPS[ctx.nativeCode] ?? GENERAL_FOLLOW_UPS.en
+  }
   if (ctx.topic === 'conjugations') {
     return CONJUGATION_FOLLOW_UPS[ctx.nativeCode] ?? CONJUGATION_FOLLOW_UPS.en
   }
@@ -142,23 +184,46 @@ export function tutorReplyLanguage(ctx: TutorWordContext, userMessage: string): 
   return detectMessageLanguage(userMessage) ?? ctx.nativeCode
 }
 
+function tutorFocusLine(ctx: TutorWordContext): string {
+  if (ctx.topic === 'general') {
+    return `Help the learner with ${ctx.learningLang} vocabulary, grammar, and study tips.`
+  }
+  if (ctx.topic === 'conjugations') {
+    return `Focus on ${ctx.learningLang} conjugations / verb forms (${ctx.learning} · ${ctx.native})${ctx.emoji ? ` ${ctx.emoji}` : ''}.`
+  }
+  return `Focus on this word: ${ctx.learning} (${ctx.native})${ctx.emoji ? ` ${ctx.emoji}` : ''}.`
+}
+
+function tutorLanguageRules(ctx: TutorWordContext, replyLang: LangCode): string[] {
+  const replyLabel = getLanguage(replyLang).label
+  const otherLabel = replyLang === ctx.nativeCode ? ctx.learningLang : ctx.nativeLang
+
+  if (replyLang === ctx.learningCode) {
+    return [
+      `CRITICAL: Write 100% in ${replyLabel}. Every word of your reply must be ${replyLabel}.`,
+      `Do not use ${otherLabel} anywhere—not in parentheses, glosses, labels, headings, or examples.`,
+      `Example phrases must also be entirely in ${replyLabel}.`,
+      `If you mention a vocabulary item, write it only in ${replyLabel}.`,
+    ]
+  }
+
+  return [
+    `CRITICAL: Write 100% in ${replyLabel}. Every explanation word must be ${replyLabel}.`,
+    `Do not write sentences or explanations in ${otherLabel}.`,
+    `You may include at most one short example phrase in ${ctx.learningLang} with its ${replyLabel} meaning in parentheses.`,
+  ]
+}
+
 export function tutorSystemPrompt(ctx: TutorWordContext, replyLang: LangCode): string {
   const replyLabel = getLanguage(replyLang).label
-  const focus =
-    ctx.topic === 'conjugations'
-      ? `Focus on ${ctx.learningLang} conjugations / verb forms (${ctx.learning} · ${ctx.native})${ctx.emoji ? ` ${ctx.emoji}` : ''}.`
-      : `Focus on this word: ${ctx.learning} (${ctx.native})${ctx.emoji ? ` ${ctx.emoji}` : ''}.`
 
   return [
     `You are the AI tutor inside Słowo, a mobile vocabulary app.`,
     `The learner's native language is ${ctx.nativeLang}; they are learning ${ctx.learningLang}.`,
-    focus,
+    tutorFocusLine(ctx),
     ctx.category ? `Category: ${ctx.category}.` : '',
-    `CRITICAL: Reply in the same language as the learner's latest message. That language is ${replyLabel}.`,
-    `Write the full explanation in ${replyLabel} only. Do not answer in a different language.`,
-    replyLang === ctx.learningCode
-      ? `Add short ${ctx.nativeLang} glosses in parentheses only when helpful.`
-      : `Include at most 1–2 brief example phrases in ${ctx.learningLang} with ${ctx.nativeLang} in parentheses when helpful.`,
+    `Reply in the same language as the learner's latest message. That language is ${replyLabel}.`,
+    ...tutorLanguageRules(ctx, replyLang),
     `Keep every reply under 300 characters total.`,
     `Keep answers short and practical (1–3 short sentences max).`,
     `Write plain text only. Use simple hyphen bullets for examples if needed.`,
@@ -172,14 +237,17 @@ export function tutorSystemPrompt(ctx: TutorWordContext, replyLang: LangCode): s
 
 export function tutorRepeatPrompt(ctx: TutorWordContext, targetLang: LangCode): string {
   const label = getLanguage(targetLang).label
+  const forbidden = targetLang === ctx.nativeCode ? ctx.learningLang : ctx.nativeLang
+
   return [
     `You are the AI tutor inside Słowo, a mobile vocabulary app.`,
     `The learner's native language is ${ctx.nativeLang}; they are learning ${ctx.learningLang}.`,
-    `Focus on this word: ${ctx.learning} (${ctx.native}).`,
-    `Rewrite the tutor reply below entirely in ${label}.`,
+    tutorFocusLine(ctx),
+    `Convert the tutor reply below so every word is ${label}.`,
+    `Do not leave any ${forbidden} words, glosses, labels, or mixed-language bullets.`,
     `Keep the same meaning and stay under 300 characters.`,
     `Plain text only, no markdown.`,
-    `Do not add greetings or meta commentary—just the rewritten reply.`,
+    `Do not add greetings or meta commentary—just the converted reply.`,
   ]
     .filter(Boolean)
     .join(' ')
@@ -198,8 +266,17 @@ const TUTOR_LISTEN_LABEL: Record<LangCode, string> = {
   pl: 'Słuchaj',
 }
 
+const TUTOR_TRANSLATING_LABEL: Record<LangCode, string> = {
+  en: 'Translating',
+  pl: 'Tłumaczenie',
+}
+
 export function tutorListenLabel(lang: LangCode): string {
   return TUTOR_LISTEN_LABEL[lang] ?? TUTOR_LISTEN_LABEL.en
+}
+
+export function tutorTranslatingLabel(lang: LangCode): string {
+  return TUTOR_TRANSLATING_LABEL[lang] ?? TUTOR_TRANSLATING_LABEL.en
 }
 
 export async function askTutor(
