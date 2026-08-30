@@ -1130,6 +1130,8 @@ function bindSheetFeed(): void {
     })
   })
 
+  bindSheetScrollPaging()
+
   observer = new IntersectionObserver(
     (entries) => {
       const visible = entries
@@ -1162,6 +1164,84 @@ function bindSheetFeed(): void {
       if (Number.isNaN(index)) return
       openTutor(index)
     })
+  })
+}
+
+/** Nested sheet lists steal swipe gestures — hand off to the feed at edges / when content fits. */
+function bindSheetScrollPaging(): void {
+  const edge = 2
+
+  feed.querySelectorAll<HTMLElement>('.sheet-scroll').forEach((scroller) => {
+    const syncFit = (): void => {
+      scroller.classList.toggle('is-fit', scroller.scrollHeight <= scroller.clientHeight + edge)
+    }
+    syncFit()
+    window.requestAnimationFrame(syncFit)
+
+    let startY = 0
+    let lastY = 0
+    let mode: 'undecided' | 'inner' | 'page' = 'undecided'
+
+    const canScrollInner = (): boolean => scroller.scrollHeight > scroller.clientHeight + edge
+
+    scroller.addEventListener(
+      'touchstart',
+      (event) => {
+        const touch = event.touches[0]
+        if (!touch) return
+        startY = touch.clientY
+        lastY = touch.clientY
+        syncFit()
+        mode = canScrollInner() ? 'undecided' : 'page'
+      },
+      { passive: true },
+    )
+
+    scroller.addEventListener(
+      'touchmove',
+      (event) => {
+        const touch = event.touches[0]
+        if (!touch) return
+        const y = touch.clientY
+        const dy = y - lastY
+        lastY = y
+        const totalDy = y - startY
+        const atTop = scroller.scrollTop <= edge
+        const atBottom =
+          scroller.scrollTop + scroller.clientHeight >= scroller.scrollHeight - edge
+
+        if (mode === 'undecided') {
+          if (Math.abs(totalDy) < 10) return
+          const pullingDown = totalDy > 0
+          const pullingUp = totalDy < 0
+          if ((atTop && pullingDown) || (atBottom && pullingUp) || !canScrollInner()) {
+            mode = 'page'
+          } else {
+            mode = 'inner'
+          }
+        }
+
+        if (mode === 'page') {
+          event.preventDefault()
+          feed.scrollTop -= dy
+        }
+      },
+      { passive: false },
+    )
+
+    const snapFeed = (): void => {
+      if (mode !== 'page') {
+        mode = 'undecided'
+        return
+      }
+      const height = Math.max(1, feed.clientHeight)
+      const target = Math.round(feed.scrollTop / height) * height
+      feed.scrollTo({ top: target, behavior: 'smooth' })
+      mode = 'undecided'
+    }
+
+    scroller.addEventListener('touchend', snapFeed, { passive: true })
+    scroller.addEventListener('touchcancel', snapFeed, { passive: true })
   })
 }
 
@@ -2360,24 +2440,16 @@ function syncTutorViewport(): void {
     return
   }
   const vv = window.visualViewport
-  if (!vv) {
-    tutor.classList.remove('is-compact')
-    return
-  }
-  const offsetTop = vv.offsetTop
-  const height = vv.height
-  tutor.style.top = `${offsetTop}px`
-  tutor.style.height = `${height}px`
+  if (!vv) return
+  tutor.style.top = `${vv.offsetTop}px`
+  tutor.style.height = `${vv.height}px`
   tutor.style.bottom = 'auto'
-  const compact = height < window.innerHeight * 0.78 || document.activeElement === tutorInput
-  tutor.classList.toggle('is-compact', compact)
 }
 
 function clearTutorViewport(): void {
   tutor.style.top = ''
   tutor.style.height = ''
   tutor.style.bottom = ''
-  tutor.classList.remove('is-compact')
 }
 
 function renderTutorQuick(): void {

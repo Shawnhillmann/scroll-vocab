@@ -1411,6 +1411,7 @@ button {
   padding-bottom: calc(12px + env(safe-area-inset-bottom));
   overflow: hidden;
   gap: 10px;
+  touch-action: pan-y;
 }
 
 .sheet-scroll {
@@ -1419,12 +1420,17 @@ button {
   width: 100%;
   overflow-x: hidden;
   overflow-y: auto;
-  overscroll-behavior: contain;
+  overscroll-behavior-y: auto;
   -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
   display: flex;
   flex-direction: column;
   align-items: center;
   padding-bottom: 8px;
+}
+
+.sheet-scroll.is-fit {
+  overflow-y: hidden;
 }
 
 .sheet-kicker {
@@ -1588,36 +1594,23 @@ button {
   position: relative;
   z-index: 2;
   display: grid;
-  grid-template-columns: 40px 1fr 40px;
+  grid-template-columns: 32px 1fr 32px;
   align-items: center;
-  gap: 8px;
-  padding: calc(14px + env(safe-area-inset-top)) 14px 10px;
+  gap: 6px;
+  padding: max(6px, env(safe-area-inset-top)) 12px 6px;
   border-bottom: 1px solid var(--line);
   background: rgba(18, 22, 30, 0.98);
   flex-shrink: 0;
 }
 
-.tutor.is-compact .tutor-top {
-  padding: max(6px, env(safe-area-inset-top)) 12px 6px;
-  gap: 6px;
-  grid-template-columns: 32px 1fr 32px;
-}
-
 .tutor-back,
 .tutor-top-spacer {
-  width: 40px;
-  height: 40px;
-  display: grid;
-  place-items: center;
-  border-radius: 12px;
-  color: var(--ink);
-}
-
-.tutor.is-compact .tutor-back,
-.tutor.is-compact .tutor-top-spacer {
   width: 32px;
   height: 32px;
+  display: grid;
+  place-items: center;
   border-radius: 10px;
+  color: var(--ink);
 }
 
 .tutor-back {
@@ -1633,25 +1626,16 @@ button {
 .tutor-word {
   margin: 0;
   font-family: var(--serif);
-  font-size: 1.45rem;
+  font-size: 1.05rem;
   font-weight: 600;
   color: var(--accent);
   letter-spacing: -0.02em;
   line-height: 1.1;
 }
 
-.tutor.is-compact .tutor-word {
-  font-size: 1.05rem;
-}
-
 .tutor-native {
-  margin: 4px 0 0;
+  margin: 1px 0 0;
   color: var(--muted);
-  font-size: 0.88rem;
-}
-
-.tutor.is-compact .tutor-native {
-  margin-top: 1px;
   font-size: 0.72rem;
 }
 
@@ -1999,16 +1983,11 @@ mark.tutor-hit {
   z-index: 2;
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 10px 14px calc(10px + env(safe-area-inset-bottom));
+  gap: 8px;
+  padding: 8px 12px calc(8px + env(safe-area-inset-bottom));
   border-top: 1px solid var(--line);
   background: rgba(12, 16, 22, 0.98);
   flex-shrink: 0;
-}
-
-.tutor.is-compact .tutor-compose {
-  padding: 8px 12px calc(8px + env(safe-area-inset-bottom));
-  gap: 8px;
 }
 
 .tutor-input {
