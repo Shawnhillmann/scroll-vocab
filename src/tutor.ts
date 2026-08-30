@@ -14,13 +14,30 @@ export type TutorWordContext = {
   category?: string
 }
 
-export function tutorQuickStarts(ctx: TutorWordContext): string[] {
+export type TutorQuickStart = {
+  label: string
+  prompt: string
+}
+
+export function tutorQuickStarts(ctx: TutorWordContext): TutorQuickStart[] {
   const w = ctx.learning
   return [
-    `What does ${w} mean?`,
-    `How is ${w} used?`,
-    `Show me examples with ${w}`,
-    `Help me remember ${w}`,
+    {
+      label: 'Common phrases with this word',
+      prompt: `What are common phrases with ${w}?`,
+    },
+    {
+      label: 'Common forms of this word',
+      prompt: `What are the common forms of ${w}?`,
+    },
+    {
+      label: 'Words with similar meaning',
+      prompt: `What words have a similar meaning to ${w}?`,
+    },
+    {
+      label: 'Words with opposite meaning',
+      prompt: `What words have the opposite meaning of ${w}?`,
+    },
   ]
 }
 
@@ -39,8 +56,9 @@ export function tutorSystemPrompt(ctx: TutorWordContext): string {
     `The learner's native language is ${ctx.nativeLang}; they are learning ${ctx.learningLang}.`,
     `Focus on this word: ${ctx.learning} (${ctx.native})${ctx.emoji ? ` ${ctx.emoji}` : ''}.`,
     ctx.category ? `Category: ${ctx.category}.` : '',
-    `Keep answers short and practical (about 2–5 sentences).`,
-    `Include 1–3 short example sentences in ${ctx.learningLang} with ${ctx.nativeLang} translations in parentheses.`,
+    `Keep every reply under 300 characters total.`,
+    `Keep answers short and practical (1–3 short sentences max).`,
+    `Include at most 1–2 brief example phrases in ${ctx.learningLang} with ${ctx.nativeLang} in parentheses.`,
     `Write plain text only. Use simple hyphen bullets for examples if needed.`,
     `Do not use markdown: no **, __, #, backticks, or code fences.`,
     `Do not change font emphasis with symbols — just write normally.`,

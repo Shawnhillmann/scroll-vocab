@@ -176,6 +176,21 @@ export function playResult(): void {
   playAction('result')
 }
 
+export function playTutorSend(): void {
+  void unlockSfx()
+  fire('tutor-send')
+}
+
+export function playTutorReceive(): void {
+  void unlockSfx()
+  fire('tutor-in')
+}
+
+export function playTutorTyping(): void {
+  void unlockSfx()
+  fire('tutor-type')
+}
+
 export function previewSound(id: string): void {
   void unlockSfx()
   fire(id)
@@ -309,6 +324,9 @@ function buildCatalog(): Record<string, Float32Array> {
     ding: tone(880, 0.08, 0.18),
     glow: mix(tone(523, 0.07, 0.16), pad(tone(659, 0.1, 0.15), 0.08)),
     finish: mix(tone(659, 0.06, 0.16), pad(tone(988, 0.1, 0.15), 0.09)),
+    'tutor-send': mix(pluck(640, 0.035, 0.11), pad(pluck(920, 0.028, 0.07), 0.018)),
+    'tutor-in': mix(tone(587, 0.045, 0.1), pad(tone(740, 0.055, 0.09), 0.04)),
+    'tutor-type': mix(pluck(920, 0.018, 0.05), noise(0.008, 0.035)),
     victory: mix(
       bell(523, 0.22, 0.24),
       pad(bell(659, 0.22, 0.26), 0.12),

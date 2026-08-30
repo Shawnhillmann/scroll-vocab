@@ -39,6 +39,9 @@ import {
   playVictory,
   playScroll,
   playWrong,
+  playTutorSend,
+  playTutorReceive,
+  playTutorTyping,
   previewSound,
   SOUND_ACTIONS,
   SOUND_CHOICES,
@@ -177,6 +180,10 @@ let payoffTimer = 0
 let tutorBusy = false
 let tutorContext: TutorWordContext | null = null
 let tutorMessages: TutorChatMessage[] = []
+let tutorRevealGen = 0
+let tutorRevealTimer = 0
+let tutorPendingSoundTimer = 0
+let lastTutorTypeSound = 0
 const tutorHistory = new Map<string, TutorChatMessage[]>()
 
 prefetchVoices()
@@ -562,17 +569,15 @@ tutorSuggestions.addEventListener('click', (event) => {
   void sendTutorMessage(button.dataset.tutorPrompt ?? '')
 })
 tutorInput.addEventListener('focus', () => {
-  syncTutorKeyboard()
-  window.setTimeout(() => {
-    scrollTutorToBottom()
-    tutorInput.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
-  }, 280)
+  window.setTimeout(() => scrollTutorToBottom(), 320)
 })
-tutorInput.addEventListener('blur', () => {
-  window.setTimeout(syncTutorKeyboard, 120)
+tutorThread.addEventListener('click', (event) => {
+  const button = (event.target as HTMLElement).closest<HTMLButtonElement>('[data-tutor-speak]')
+  if (!button || tutorBusy) return
+  const index = Number(button.dataset.tutorSpeak)
+  if (Number.isNaN(index)) return
+  speakTutorMessage(index)
 })
-window.visualViewport?.addEventListener('resize', syncTutorKeyboard)
-window.visualViewport?.addEventListener('scroll', syncTutorKeyboard)
 
 qs('#open-settings').addEventListener('click', () => {
   if (settings.started) {
@@ -918,6 +923,7 @@ function bindFeed(): void {
     button.addEventListener('click', () => {
       const card = button.closest<HTMLElement>('.card')
       if (!card || card.classList.contains('answered')) return
+      card.querySelector<HTMLInputElement>('.type-input')?.blur()
       unlockSpeech()
       gradeCard(card, button.dataset.value ?? '')
     })
@@ -943,9 +949,8 @@ function bindFeed(): void {
     sentence.addEventListener('click', (event) => {
       event.stopPropagation()
       const card = sentence.closest<HTMLElement>('.card-blank')
-      const gloss = card?.querySelector<HTMLElement>('[data-blank-gloss]')
-      if (!gloss) return
-      gloss.hidden = false
+      if (!card) return
+      card.classList.add('is-gloss-open')
     })
   })
 
@@ -1170,13 +1175,19 @@ function cardMarkup(word: Word, index: number, pool: Word[]): string {
   if (mode === 'listen') {
     return `
     <article class="card card-quiz card-listen" data-index="${index}" data-answer="${answer}">
-      <button class="emoji-hit" type="button" aria-label="Replay word">
-        <span class="emoji">${word.emoji}</span>
-      </button>
-      <p class="listen-hint">What did you hear?</p>
-      <p class="learn" data-learn hidden></p>
-      <p class="native listen-native" data-native hidden>${native}</p>
-      ${quizUi}
+      <div class="card-quiz-main">
+        <button class="emoji-hit" type="button" aria-label="Replay word">
+          <span class="emoji">${word.emoji}</span>
+        </button>
+        <div class="quiz-reveal-slot">
+          <p class="listen-hint">What did you hear?</p>
+          <div class="quiz-reveal-answer">
+            <p class="learn" data-learn>${answer}</p>
+            <p class="native listen-native" data-native>${native}</p>
+          </div>
+        </div>
+        ${quizUi}
+      </div>
       ${tutorLaunchMarkup(index)}
     </article>
   `
@@ -1185,15 +1196,19 @@ function cardMarkup(word: Word, index: number, pool: Word[]): string {
   if (mode === 'blank' && blank) {
     return `
     <article class="card card-quiz card-blank" data-index="${index}" data-answer="${answer}" data-blank-form="${escapeHtml(blank.answer)}" data-speak="${escapeHtml(blank.speak)}">
-      <button class="emoji-hit" type="button" aria-label="Word prompt">
-        <span class="emoji">${word.emoji}</span>
-      </button>
-      <button class="blank-sentence" type="button" data-blank-sentence aria-label="Show English translation">
-        ${blank.displayHtml}
-      </button>
-      <p class="blank-gloss" data-blank-gloss hidden>${escapeHtml(blank.gloss)}</p>
-      <p class="learn" data-learn hidden></p>
-      ${quizUi}
+      <div class="card-quiz-main">
+        <button class="emoji-hit" type="button" aria-label="Word prompt">
+          <span class="emoji">${word.emoji}</span>
+        </button>
+        <button class="blank-sentence" type="button" data-blank-sentence aria-label="Show English translation">
+          ${blank.displayHtml}
+        </button>
+        <p class="blank-gloss" data-blank-gloss>${escapeHtml(blank.gloss)}</p>
+        <div class="quiz-answer-slot">
+          <p class="learn" data-learn>${answer}</p>
+        </div>
+        ${quizUi}
+      </div>
       ${tutorLaunchMarkup(index)}
     </article>
   `
@@ -1201,7 +1216,9 @@ function cardMarkup(word: Word, index: number, pool: Word[]): string {
 
   const prompt = quiz
     ? `<p class="native" data-native>${native}</p>
-       <p class="learn" data-learn hidden></p>`
+       <div class="quiz-answer-slot">
+         <p class="learn" data-learn>${answer}</p>
+       </div>`
     : settings.sounds.reveal
       ? `<div class="hook">
            <p class="hook-line"${settings.sounds.ask ? '' : ' hidden'} data-hook>${escapeHtml(hookLine(index, word.forms[settings.native]))}</p>
@@ -1223,12 +1240,14 @@ function cardMarkup(word: Word, index: number, pool: Word[]): string {
 
   if (quiz) {
     return `
-    <article class="card card-quiz" data-index="${index}" data-answer="${answer}">
-      <button class="emoji-hit" type="button" aria-label="Word prompt">
-        <span class="emoji">${word.emoji}</span>
-      </button>
-      ${prompt}
-      ${quizUi}
+    <article class="card card-quiz${mode === 'choice' ? ' card-choice' : mode === 'type' ? ' card-type' : ''}" data-index="${index}" data-answer="${answer}">
+      <div class="card-quiz-main">
+        <button class="emoji-hit" type="button" aria-label="Word prompt">
+          <span class="emoji">${word.emoji}</span>
+        </button>
+        ${prompt}
+        ${quizUi}
+      </div>
       ${tutorLaunchMarkup(index)}
     </article>
   `
@@ -1372,18 +1391,7 @@ function gradeCard(card: HTMLElement, given: string): void {
   if (correct) sessionCorrect += 1
 
   const learn = card.querySelector<HTMLElement>('[data-learn]')
-  if (learn) {
-    learn.hidden = false
-    learn.textContent = expected
-  }
-
-  const nativeGloss = card.querySelector<HTMLElement>('[data-native]')
-  if (nativeGloss && card.classList.contains('card-listen')) {
-    nativeGloss.hidden = false
-  }
-
-  const hint = card.querySelector<HTMLElement>('.listen-hint')
-  if (hint) hint.hidden = true
+  if (learn) learn.textContent = expected
 
   const blankSentence = card.querySelector<HTMLElement>('[data-blank-sentence]')
   if (blankSentence) {
@@ -1395,7 +1403,7 @@ function gradeCard(card: HTMLElement, given: string): void {
   }
 
   const gloss = card.querySelector<HTMLElement>('[data-blank-gloss]')
-  if (gloss) gloss.hidden = false
+  if (gloss) card.classList.add('is-gloss-open')
 
   card.querySelectorAll<HTMLButtonElement>('.quiz-option').forEach((option) => {
     option.disabled = true
@@ -1409,6 +1417,7 @@ function gradeCard(card: HTMLElement, given: string): void {
   if (input) {
     input.disabled = true
     input.value = given
+    input.blur()
   }
   const submit = card.querySelector<HTMLButtonElement>('.type-form button')
   if (submit) submit.disabled = true
@@ -2288,34 +2297,22 @@ function openTutor(index: number): void {
   renderTutorThread()
   renderTutorSuggestions()
   tutor.hidden = false
-  syncTutorKeyboard()
   tutorScroll.scrollTop = 0
-  window.setTimeout(() => tutorInput.focus(), 180)
+  window.setTimeout(() => scrollTutorToBottom(), 80)
 }
 
 function closeTutor(): void {
   if (tutorContext) {
     tutorHistory.set(tutorHistoryKey(tutorContext), [...tutorMessages])
   }
+  tutorRevealGen += 1
+  window.clearTimeout(tutorRevealTimer)
+  stopTutorPendingSounds()
+  stopSpeech()
   tutor.hidden = true
   tutorBusy = false
   tutorContext = null
-  tutor.style.removeProperty('--tutor-keyboard')
   tutorInput.blur()
-}
-
-function syncTutorKeyboard(): void {
-  if (tutor.hidden) {
-    tutor.style.removeProperty('--tutor-keyboard')
-    return
-  }
-  const vv = window.visualViewport
-  if (!vv) {
-    tutor.style.removeProperty('--tutor-keyboard')
-    return
-  }
-  const occluded = Math.max(0, window.innerHeight - vv.height - vv.offsetTop)
-  tutor.style.setProperty('--tutor-keyboard', `${Math.round(occluded)}px`)
 }
 
 function renderTutorQuick(): void {
@@ -2336,10 +2333,10 @@ function renderTutorQuick(): void {
     <div class="tutor-quick-list">
       ${prompts
         .map(
-          (prompt, i) => `
-            <button class="tutor-quick-btn" type="button" data-tutor-prompt="${escapeHtml(prompt)}">
+          (item, i) => `
+            <button class="tutor-quick-btn" type="button" data-tutor-prompt="${escapeHtml(item.prompt)}">
               <span class="tutor-quick-dot tutor-quick-dot-${i % 4}" aria-hidden="true"></span>
-              <span>${escapeHtml(prompt)}</span>
+              <span>${escapeHtml(item.label)}</span>
             </button>`,
         )
         .join('')}
@@ -2353,16 +2350,81 @@ function renderTutorThread(): void {
     return
   }
   tutorThread.innerHTML = tutorMessages
-    .map((message) => {
+    .map((message, index) => {
       if (message.role === 'user') {
         return `<div class="tutor-bubble tutor-bubble-user"><p>${escapeHtml(message.content)}</p></div>`
       }
-      return `<div class="tutor-row-assistant">
-        <span class="tutor-avatar" aria-hidden="true">✦</span>
-        <div class="tutor-bubble tutor-bubble-assistant">${formatTutorHtml(message.content, tutorContext?.learning)}</div>
-      </div>`
+      return tutorAssistantRowHtml(message.content, index)
     })
     .join('')
+}
+
+function tutorSpeakButtonMarkup(index: number): string {
+  return `<button class="tutor-speak" type="button" data-tutor-speak="${index}" aria-label="Listen to reply">
+      <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true">
+        <path fill="currentColor" d="M3 10v4h4l5 5V5L7 10H3zm13.5 2a4.5 4.5 0 0 0-2.5-4.03v8.06a4.5 4.5 0 0 0 2.5-4.03z"/>
+      </svg>
+      <span>Listen</span>
+    </button>`
+}
+
+function tutorAssistantRowHtml(content: string, index: number, innerHtml?: string): string {
+  const body = innerHtml ?? formatTutorHtml(content, tutorContext?.learning)
+  return `<div class="tutor-row-assistant" data-tutor-msg="${index}">
+      <span class="tutor-avatar" aria-hidden="true">✦</span>
+      <div class="tutor-msg-col">
+        <div class="tutor-bubble tutor-bubble-assistant">${body}</div>
+        ${tutorSpeakButtonMarkup(index)}
+      </div>
+    </div>`
+}
+
+function attachTutorSpeakAction(row: HTMLElement, index: number): void {
+  let col = row.querySelector<HTMLElement>('.tutor-msg-col')
+  const bubble = row.querySelector<HTMLElement>('.tutor-bubble-assistant')
+  if (!bubble) return
+  if (!col) {
+    col = document.createElement('div')
+    col.className = 'tutor-msg-col'
+    bubble.replaceWith(col)
+    col.appendChild(bubble)
+  }
+  if (!col.querySelector('[data-tutor-speak]')) {
+    col.insertAdjacentHTML('beforeend', tutorSpeakButtonMarkup(index))
+  }
+  row.dataset.tutorMsg = String(index)
+}
+
+function speakTutorMessage(index: number): void {
+  const message = tutorMessages[index]
+  if (!message || message.role !== 'assistant' || tutor.hidden) return
+  unlockSpeech()
+  stopSpeech()
+  tutorThread.querySelectorAll('.tutor-speak').forEach((button) => button.classList.remove('is-speaking'))
+  const button = tutorThread.querySelector<HTMLButtonElement>(`[data-tutor-speak="${index}"]`)
+  button?.classList.add('is-speaking')
+  const learning = getLanguage(settings.learning)
+  speak(message.content, learning.bcp47, learning.voiceLangs, () => {
+    button?.classList.remove('is-speaking')
+  })
+}
+
+function startTutorPendingSounds(): void {
+  stopTutorPendingSounds()
+  playTutorTyping()
+  tutorPendingSoundTimer = window.setInterval(() => playTutorTyping(), 380)
+}
+
+function stopTutorPendingSounds(): void {
+  window.clearInterval(tutorPendingSoundTimer)
+  tutorPendingSoundTimer = 0
+}
+
+function maybePlayTutorTypeSound(): void {
+  const now = performance.now()
+  if (now - lastTutorTypeSound < 46) return
+  lastTutorTypeSound = now
+  playTutorTyping()
 }
 
 function renderTutorSuggestions(): void {
@@ -2403,8 +2465,11 @@ async function sendTutorMessage(raw: string): Promise<void> {
   const text = raw.trim()
   if (!text || !tutorContext || tutorBusy) return
 
+  unlockSpeech()
+  void unlockSfx()
   tutorInput.value = ''
   tutorMessages.push({ role: 'user', content: text })
+  playTutorSend()
   renderTutorQuick()
   renderTutorThread()
   renderTutorSuggestions()
@@ -2414,13 +2479,16 @@ async function sendTutorMessage(raw: string): Promise<void> {
 
   try {
     const reply = await askTutor(tutorSystemPrompt(tutorContext), tutorMessages)
-    removeTutorPending()
+    stopTutorPendingSounds()
     tutorMessages.push({ role: 'assistant', content: reply })
+    const msgIndex = tutorMessages.length - 1
+    await revealTutorReply(reply, msgIndex)
     tutorHistory.set(tutorHistoryKey(tutorContext), [...tutorMessages])
-    renderTutorThread()
     renderTutorSuggestions()
   } catch (error) {
     removeTutorPending()
+    tutorRevealGen += 1
+    window.clearTimeout(tutorRevealTimer)
     const message = error instanceof Error ? error.message : 'Something went wrong'
     tutorMessages.pop()
     renderTutorQuick()
@@ -2434,16 +2502,77 @@ async function sendTutorMessage(raw: string): Promise<void> {
 }
 
 function appendTutorPending(): void {
+  startTutorPendingSounds()
   tutorThread.insertAdjacentHTML(
     'beforeend',
     `<div class="tutor-row-assistant" data-tutor-pending>
       <span class="tutor-avatar" aria-hidden="true">✦</span>
-      <div class="tutor-bubble tutor-bubble-assistant tutor-pending">Thinking…</div>
+      <div class="tutor-bubble tutor-bubble-assistant tutor-pending" aria-label="Tutor is typing">
+        <span class="tutor-typing-dots"><span></span><span></span><span></span></span>
+      </div>
     </div>`,
   )
 }
 
+async function revealTutorReply(reply: string, msgIndex: number): Promise<void> {
+  const gen = ++tutorRevealGen
+  window.clearTimeout(tutorRevealTimer)
+  removeTutorPending()
+
+  const learning = tutorContext?.learning
+  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+
+  if (reducedMotion) {
+    tutorThread.insertAdjacentHTML('beforeend', tutorAssistantRowHtml(reply, msgIndex))
+    playTutorReceive()
+    scrollTutorToBottom()
+    return
+  }
+
+  const row = document.createElement('div')
+  row.className = 'tutor-row-assistant'
+  row.dataset.tutorTyping = 'true'
+  row.innerHTML = `
+    <span class="tutor-avatar" aria-hidden="true">✦</span>
+    <div class="tutor-msg-col">
+      <div class="tutor-bubble tutor-bubble-assistant">
+        <p class="tutor-live"></p><span class="tutor-cursor" aria-hidden="true"></span>
+      </div>
+    </div>
+  `
+  tutorThread.appendChild(row)
+  const live = row.querySelector<HTMLElement>('.tutor-live')
+  if (!live) return
+
+  const tokens = reply.match(/\S+|\s+/g) ?? [reply]
+  let shown = ''
+
+  for (const token of tokens) {
+    if (gen !== tutorRevealGen || tutor.hidden) return
+    shown += token
+    live.textContent = shown
+    if (token.trim()) maybePlayTutorTypeSound()
+    scrollTutorToBottom()
+    const delay = token.trim() ? 34 + Math.min(36, token.length * 5) : 12
+    await new Promise<void>((resolve) => {
+      tutorRevealTimer = window.setTimeout(resolve, delay)
+    })
+  }
+
+  if (gen !== tutorRevealGen || tutor.hidden) return
+
+  const bubble = row.querySelector('.tutor-bubble-assistant')
+  if (bubble) {
+    bubble.innerHTML = formatTutorHtml(reply, learning)
+    row.removeAttribute('data-tutor-typing')
+  }
+  attachTutorSpeakAction(row, msgIndex)
+  playTutorReceive()
+  scrollTutorToBottom()
+}
+
 function removeTutorPending(): void {
+  stopTutorPendingSounds()
   tutorThread.querySelector('[data-tutor-pending]')?.remove()
 }
 
