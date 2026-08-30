@@ -51,8 +51,11 @@ import {
 } from './sfx.ts'
 import {
   askTutor,
+  askTutorRepeat,
+  detectMessageLanguage,
   formatTutorHtml,
   tutorFollowUps,
+  tutorListenLabel,
   tutorQuickSectionLabel,
   tutorQuickStarts,
   tutorReplyLanguage,
@@ -187,6 +190,9 @@ let tutorRevealGen = 0
 let tutorRevealTimer = 0
 let tutorPendingSoundTimer = 0
 let lastTutorTypeSound = 0
+const tutorRepeatCache = new Map<string, string>()
+const tutorMessageViews = new Map<number, { text: string; lang: LangCode }>()
+let tutorRepeatBusyIndex: number | null = null
 
 prefetchVoices()
 
@@ -574,14 +580,35 @@ tutorSuggestions.addEventListener('click', (event) => {
   void sendTutorMessage(button.dataset.tutorPrompt ?? '')
 })
 tutorInput.addEventListener('focus', () => {
-  window.setTimeout(() => scrollTutorToBottom(), 320)
+  syncTutorViewport()
+  window.setTimeout(() => {
+    syncTutorViewport()
+    scrollTutorToBottom()
+  }, 320)
 })
+tutorInput.addEventListener('blur', () => {
+  window.setTimeout(() => syncTutorViewport(), 120)
+})
+window.visualViewport?.addEventListener('resize', syncTutorViewport)
+window.visualViewport?.addEventListener('scroll', syncTutorViewport)
 tutorThread.addEventListener('click', (event) => {
-  const button = (event.target as HTMLElement).closest<HTMLButtonElement>('[data-tutor-speak]')
-  if (!button || tutorBusy) return
-  const index = Number(button.dataset.tutorSpeak)
-  if (Number.isNaN(index)) return
-  speakTutorMessage(index)
+  const target = event.target as HTMLElement
+  const speakBtn = target.closest<HTMLButtonElement>('[data-tutor-speak]')
+  if (speakBtn) {
+    if (tutorBusy || tutorRepeatBusyIndex !== null) return
+    const index = Number(speakBtn.dataset.tutorSpeak)
+    if (Number.isNaN(index)) return
+    speakTutorMessage(index)
+    return
+  }
+  const repeatBtn = target.closest<HTMLButtonElement>('[data-tutor-repeat]')
+  if (repeatBtn) {
+    if (tutorBusy || tutorRepeatBusyIndex !== null) return
+    const index = Number(repeatBtn.dataset.tutorRepeat)
+    const lang = repeatBtn.dataset.tutorLang
+    if (Number.isNaN(index) || !lang || !isLangCode(lang)) return
+    void repeatTutorMessage(index, lang)
+  }
 })
 
 qs('#open-settings').addEventListener('click', () => {
@@ -1076,11 +1103,13 @@ function sheetCardMarkup(sheet: ConjugationSheet, index: number): string {
 
   return `
     <article class="card card-sheet" data-index="${index}" data-sheet="${sheet.id}">
-      <p class="sheet-kicker">${escapeHtml(tense)} · cheat sheet</p>
-      <p class="emoji sheet-emoji">${sheet.emoji}</p>
-      <p class="learn sheet-title">${escapeHtml(title)}</p>
-      <p class="native sheet-subtitle">${escapeHtml(subtitle)}</p>
-      <div class="sheet-table">${rows}</div>
+      <div class="sheet-scroll">
+        <p class="sheet-kicker">${escapeHtml(tense)} · cheat sheet</p>
+        <p class="emoji sheet-emoji">${sheet.emoji}</p>
+        <p class="learn sheet-title">${escapeHtml(title)}</p>
+        <p class="native sheet-subtitle">${escapeHtml(subtitle)}</p>
+        <div class="sheet-table">${rows}</div>
+      </div>
       ${tutorLaunchMarkup(index)}
     </article>
   `
@@ -1120,18 +1149,11 @@ function bindSheetFeed(): void {
       activeIndex = index
       refreshChrome()
       stopSpeech()
-      if (settings.started && index >= feedSheets.length - 1) {
-        scheduleLearnDone(index, ++learnSpokenGen)
-      }
     },
     { root: feed, threshold: 0.72 },
   )
 
   feed.querySelectorAll('.card').forEach((card) => observer?.observe(card))
-
-  if (settings.started && activeIndex >= feedSheets.length - 1) {
-    scheduleLearnDone(activeIndex, ++learnSpokenGen)
-  }
 
   feed.querySelectorAll<HTMLButtonElement>('.tutor-launch').forEach((button) => {
     button.addEventListener('click', (event) => {
@@ -2256,6 +2278,7 @@ function contextForTutor(index: number): TutorWordContext | null {
       nativeCode: settings.native,
       learningCode: settings.learning,
       category: category?.label,
+      topic: 'conjugations',
     }
   }
 
@@ -2270,6 +2293,7 @@ function contextForTutor(index: number): TutorWordContext | null {
     nativeCode: settings.native,
     learningCode: settings.learning,
     category: category?.label,
+    topic: 'word',
   }
 }
 
@@ -2291,17 +2315,24 @@ function openTutor(index: number): void {
 
   tutorContext = ctx
   tutorMessages = []
+  tutorRepeatCache.clear()
+  tutorMessageViews.clear()
+  tutorRepeatBusyIndex = null
   tutorBusy = false
   tutorSend.disabled = false
   tutorInput.disabled = false
   tutorInput.value = ''
-  tutorInput.placeholder = `Ask anything about ${ctx.learning}…`
+  tutorInput.placeholder =
+    ctx.topic === 'conjugations'
+      ? `Ask anything about conjugations…`
+      : `Ask anything about ${ctx.learning}…`
   qs('#tutor-word').textContent = ctx.learning
   qs('#tutor-native').textContent = ctx.native
   renderTutorQuick()
   renderTutorThread()
   renderTutorSuggestions()
   tutor.hidden = false
+  syncTutorViewport()
   tutorScroll.scrollTop = 0
   window.setTimeout(() => scrollTutorToBottom(), 80)
 }
@@ -2312,11 +2343,41 @@ function closeTutor(): void {
   stopTutorPendingSounds()
   stopSpeech()
   tutor.hidden = true
+  clearTutorViewport()
   tutorBusy = false
   tutorContext = null
   tutorMessages = []
+  tutorRepeatCache.clear()
+  tutorMessageViews.clear()
+  tutorRepeatBusyIndex = null
   tutorInput.value = ''
   tutorInput.blur()
+}
+
+function syncTutorViewport(): void {
+  if (tutor.hidden) {
+    clearTutorViewport()
+    return
+  }
+  const vv = window.visualViewport
+  if (!vv) {
+    tutor.classList.remove('is-compact')
+    return
+  }
+  const offsetTop = vv.offsetTop
+  const height = vv.height
+  tutor.style.top = `${offsetTop}px`
+  tutor.style.height = `${height}px`
+  tutor.style.bottom = 'auto'
+  const compact = height < window.innerHeight * 0.78 || document.activeElement === tutorInput
+  tutor.classList.toggle('is-compact', compact)
+}
+
+function clearTutorViewport(): void {
+  tutor.style.top = ''
+  tutor.style.height = ''
+  tutor.style.bottom = ''
+  tutor.classList.remove('is-compact')
 }
 
 function renderTutorQuick(): void {
@@ -2358,18 +2419,31 @@ function renderTutorThread(): void {
       if (message.role === 'user') {
         return `<div class="tutor-bubble tutor-bubble-user"><p>${escapeHtml(message.content)}</p></div>`
       }
-      return tutorAssistantRowHtml(message.content, index)
+      const view = tutorMessageViews.get(index)
+      const content = view?.text ?? message.content
+      return tutorAssistantRowHtml(content, index)
     })
     .join('')
 }
 
-function tutorSpeakButtonMarkup(index: number): string {
-  return `<button class="tutor-speak" type="button" data-tutor-speak="${index}" aria-label="Listen to reply">
+function tutorMessageActionsMarkup(index: number): string {
+  const listenLabel = escapeHtml(tutorListenLabel(settings.native))
+  const nativeLabel = escapeHtml(getLanguage(settings.native).label)
+  const learningLabel = escapeHtml(getLanguage(settings.learning).label)
+  return `<div class="tutor-msg-actions">
+    <button class="tutor-speak" type="button" data-tutor-speak="${index}" aria-label="${listenLabel}">
       <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true">
         <path fill="currentColor" d="M3 10v4h4l5 5V5L7 10H3zm13.5 2a4.5 4.5 0 0 0-2.5-4.03v8.06a4.5 4.5 0 0 0 2.5-4.03z"/>
       </svg>
-      <span>Listen</span>
-    </button>`
+      <span>${listenLabel}</span>
+    </button>
+    <button class="tutor-speak tutor-lang-btn" type="button" data-tutor-repeat="${index}" data-tutor-lang="${settings.native}" aria-label="${nativeLabel}">
+      <span>${nativeLabel}</span>
+    </button>
+    <button class="tutor-speak tutor-lang-btn" type="button" data-tutor-repeat="${index}" data-tutor-lang="${settings.learning}" aria-label="${learningLabel}">
+      <span>${learningLabel}</span>
+    </button>
+  </div>`
 }
 
 function tutorAssistantRowHtml(content: string, index: number, innerHtml?: string): string {
@@ -2378,12 +2452,26 @@ function tutorAssistantRowHtml(content: string, index: number, innerHtml?: strin
       <span class="tutor-avatar" aria-hidden="true">✦</span>
       <div class="tutor-msg-col">
         <div class="tutor-bubble tutor-bubble-assistant">${body}</div>
-        ${tutorSpeakButtonMarkup(index)}
+        ${tutorMessageActionsMarkup(index)}
       </div>
     </div>`
 }
 
-function attachTutorSpeakAction(row: HTMLElement, index: number): void {
+function setTutorMessageView(index: number, text: string, lang: LangCode): void {
+  tutorMessageViews.set(index, { text, lang })
+  const row = tutorThread.querySelector<HTMLElement>(`[data-tutor-msg="${index}"]`)
+  const bubble = row?.querySelector<HTMLElement>('.tutor-bubble-assistant')
+  if (bubble) bubble.innerHTML = formatTutorHtml(text, tutorContext?.learning)
+}
+
+function setTutorRepeatBusy(index: number | null): void {
+  tutorRepeatBusyIndex = index
+  tutorThread.querySelectorAll<HTMLButtonElement>('[data-tutor-speak], [data-tutor-repeat]').forEach((button) => {
+    button.disabled = index !== null
+  })
+}
+
+function attachTutorMessageActions(row: HTMLElement, index: number): void {
   let col = row.querySelector<HTMLElement>('.tutor-msg-col')
   const bubble = row.querySelector<HTMLElement>('.tutor-bubble-assistant')
   if (!bubble) return
@@ -2393,24 +2481,60 @@ function attachTutorSpeakAction(row: HTMLElement, index: number): void {
     bubble.replaceWith(col)
     col.appendChild(bubble)
   }
-  if (!col.querySelector('[data-tutor-speak]')) {
-    col.insertAdjacentHTML('beforeend', tutorSpeakButtonMarkup(index))
-  }
+  col.querySelector('.tutor-msg-actions')?.remove()
+  col.insertAdjacentHTML('beforeend', tutorMessageActionsMarkup(index))
   row.dataset.tutorMsg = String(index)
 }
 
-function speakTutorMessage(index: number): void {
-  const message = tutorMessages[index]
-  if (!message || message.role !== 'assistant' || tutor.hidden) return
+function speakTutorText(text: string, lang: LangCode, index: number): void {
   unlockSpeech()
   stopSpeech()
   tutorThread.querySelectorAll('.tutor-speak').forEach((button) => button.classList.remove('is-speaking'))
   const button = tutorThread.querySelector<HTMLButtonElement>(`[data-tutor-speak="${index}"]`)
   button?.classList.add('is-speaking')
-  const learning = getLanguage(settings.learning)
-  speak(message.content, learning.bcp47, learning.voiceLangs, () => {
+  const voice = getLanguage(lang)
+  speak(text, voice.bcp47, voice.voiceLangs, () => {
     button?.classList.remove('is-speaking')
   })
+}
+
+function speakTutorMessage(index: number): void {
+  const message = tutorMessages[index]
+  if (!message || message.role !== 'assistant' || tutor.hidden) return
+  const view = tutorMessageViews.get(index)
+  const text = view?.text ?? message.content
+  const lang = view?.lang ?? detectMessageLanguage(message.content) ?? settings.learning
+  speakTutorText(text, lang, index)
+}
+
+async function repeatTutorMessage(index: number, lang: LangCode): Promise<void> {
+  const message = tutorMessages[index]
+  if (!message || message.role !== 'assistant' || !tutorContext || tutor.hidden) return
+
+  const cacheKey = `${index}|${lang}`
+  let text = tutorRepeatCache.get(cacheKey)
+
+  if (!text && detectMessageLanguage(message.content) === lang) {
+    text = message.content
+  }
+
+  if (!text) {
+    setTutorRepeatBusy(index)
+    try {
+      text = await askTutorRepeat(tutorContext, message.content, lang)
+      tutorRepeatCache.set(cacheKey, text)
+    } catch (error) {
+      const errMsg = error instanceof Error ? error.message : 'Something went wrong'
+      appendTutorError(errMsg)
+      scrollTutorToBottom()
+      return
+    } finally {
+      setTutorRepeatBusy(null)
+    }
+  }
+
+  setTutorMessageView(index, text, lang)
+  scrollTutorToBottom()
 }
 
 function startTutorPendingSounds(): void {
@@ -2463,6 +2587,15 @@ function setTutorBusy(busy: boolean): void {
   tutorSuggestions.querySelectorAll('button').forEach((button) => {
     ;(button as HTMLButtonElement).disabled = busy
   })
+  if (!busy && tutorRepeatBusyIndex === null) {
+    tutorThread.querySelectorAll<HTMLButtonElement>('[data-tutor-speak], [data-tutor-repeat]').forEach((button) => {
+      button.disabled = false
+    })
+  } else if (busy) {
+    tutorThread.querySelectorAll<HTMLButtonElement>('[data-tutor-speak], [data-tutor-repeat]').forEach((button) => {
+      button.disabled = true
+    })
+  }
 }
 
 async function sendTutorMessage(raw: string): Promise<void> {
@@ -2487,7 +2620,8 @@ async function sendTutorMessage(raw: string): Promise<void> {
     stopTutorPendingSounds()
     tutorMessages.push({ role: 'assistant', content: reply })
     const msgIndex = tutorMessages.length - 1
-    await revealTutorReply(reply, msgIndex)
+    tutorMessageViews.set(msgIndex, { text: reply, lang: replyLang })
+    await revealTutorReply(reply, msgIndex, replyLang)
     renderTutorSuggestions()
   } catch (error) {
     removeTutorPending()
@@ -2518,11 +2652,12 @@ function appendTutorPending(): void {
   )
 }
 
-async function revealTutorReply(reply: string, msgIndex: number): Promise<void> {
+async function revealTutorReply(reply: string, msgIndex: number, replyLang: LangCode): Promise<void> {
   const gen = ++tutorRevealGen
   window.clearTimeout(tutorRevealTimer)
   removeTutorPending()
 
+  tutorMessageViews.set(msgIndex, { text: reply, lang: replyLang })
   const learning = tutorContext?.learning
   const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
@@ -2570,7 +2705,7 @@ async function revealTutorReply(reply: string, msgIndex: number): Promise<void> 
     bubble.innerHTML = formatTutorHtml(reply, learning)
     row.removeAttribute('data-tutor-typing')
   }
-  attachTutorSpeakAction(row, msgIndex)
+  attachTutorMessageActions(row, msgIndex)
   playTutorReceive()
   scrollTutorToBottom()
 }

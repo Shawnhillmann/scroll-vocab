@@ -16,7 +16,7 @@ export type CategoryId =
   | 'core3'
   | 'core4'
   | 'core5'
-  | 'core6'
+  | 'money'
   | 'numbers'
   | 'days'
   | 'months'
@@ -136,7 +136,6 @@ export const categories: Category[] = [
   { id: 'core3', group: 'core', label: 'Core Words 3', short: 'Core 3', emoji: '3️⃣', tint: '#201c2c' },
   { id: 'core4', group: 'core', label: 'Core Words 4', short: 'Core 4', emoji: '4️⃣', tint: '#1e1c2e' },
   { id: 'core5', group: 'core', label: 'Core Words 5', short: 'Core 5', emoji: '5️⃣', tint: '#1c1c30' },
-  { id: 'core6', group: 'core', label: 'Core Words 6', short: 'Core 6', emoji: '6️⃣', tint: '#1a1c32' },
   // 🏠 EVERYDAY LIFE
   { id: 'kitchen', group: 'everyday', label: 'Kitchen', short: 'Kitchen', emoji: '🍳', tint: '#3a2418' },
   { id: 'furniture', group: 'everyday', label: 'Furniture', short: 'Furniture', emoji: '🛋️', tint: '#2c241c' },
@@ -162,6 +161,7 @@ export const categories: Category[] = [
   { id: 'transport', group: 'world', label: 'Transport', short: 'Transport', emoji: '🚗', tint: '#1a2430' },
   { id: 'city', group: 'world', label: 'Places', short: 'Places', emoji: '🏙️', tint: '#1c2030' },
   { id: 'streets', group: 'world', label: 'Travel', short: 'Travel', emoji: '🧳', tint: '#182028' },
+  { id: 'money', group: 'world', label: 'Money', short: 'Money', emoji: '💰', tint: '#2a2414' },
   { id: 'weather', group: 'world', label: 'Weather', short: 'Weather', emoji: '🌧️', tint: '#1c242c' },
   { id: 'nature', group: 'world', label: 'Nature', short: 'Nature', emoji: '🌿', tint: '#1c2c18' },
   // 🏃 ACTIONS
@@ -255,7 +255,7 @@ const CATEGORY_SHORT_PL: Record<CategoryId, string> = {
   core3: 'Podstawy 3',
   core4: 'Podstawy 4',
   core5: 'Podstawy 5',
-  core6: 'Podstawy 6',
+  money: 'Pieniądze',
   numbers: 'Liczby',
   days: 'Dni',
   months: 'Miesiące',
@@ -467,26 +467,26 @@ export const words: Word[] = [
   word('core-sam', 'core5', '🧍', 'alone', 'sam'),
   word('core-prawda', 'core5', '✅', 'truth', 'prawda'),
 
-  word('core-pieniadze', 'core6', '💰', 'money', 'pieniądze'),
-  word('core-dolar', 'core6', '💵', 'dollar', 'dolar'),
-  word('core-moneta', 'core6', '🪙', 'coin', 'moneta'),
-  word('core-zloty', 'core6', '🇵🇱', 'zloty', 'złoty'),
-  word('core-euro', 'core6', '💶', 'euro', 'euro'),
-  word('core-cena', 'core6', '🏷️', 'price', 'cena'),
-  word('core-placic', 'core6', '💳', 'to pay', 'płacić'),
-  word('core-kupic', 'core6', '🛒', 'to buy', 'kupić'),
-  word('core-sprzedawac', 'core6', '📤', 'to sell', 'sprzedawać'),
-  word('core-tani', 'core6', '💸', 'cheap', 'tani'),
-  word('core-drogi', 'core6', '💎', 'expensive', 'drogi'),
-  word('core-gotowka', 'core6', '💵', 'cash', 'gotówka'),
-  word('core-karta', 'core6', '💳', 'card', 'karta'),
-  word('core-portfel', 'core6', '👛', 'wallet', 'portfel'),
-  word('core-bank', 'core6', '🏦', 'bank', 'bank'),
-  word('core-sklep', 'core6', '🏪', 'store', 'sklep'),
-  word('core-paragon', 'core6', '🧾', 'receipt', 'paragon'),
-  word('core-reszta', 'core6', '🪙', 'change', 'reszta'),
-  word('core-darmowy', 'core6', '🆓', 'free', 'darmowy'),
-  word('core-kosztowac', 'core6', '💲', 'to cost', 'kosztować'),
+  word('core-pieniadze', 'money', '💰', 'money', 'pieniądze'),
+  word('core-dolar', 'money', '💵', 'dollar', 'dolar'),
+  word('core-moneta', 'money', '🪙', 'coin', 'moneta'),
+  word('core-zloty', 'money', '🇵🇱', 'zloty', 'złoty'),
+  word('core-euro', 'money', '💶', 'euro', 'euro'),
+  word('core-cena', 'money', '🏷️', 'price', 'cena'),
+  word('core-placic', 'money', '💳', 'to pay', 'płacić'),
+  word('core-kupic', 'money', '🛒', 'to buy', 'kupić'),
+  word('core-sprzedawac', 'money', '📤', 'to sell', 'sprzedawać'),
+  word('core-tani', 'money', '💸', 'cheap', 'tani'),
+  word('core-drogi', 'money', '💎', 'expensive', 'drogi'),
+  word('core-gotowka', 'money', '💵', 'cash', 'gotówka'),
+  word('core-karta', 'money', '💳', 'card', 'karta'),
+  word('core-portfel', 'money', '👛', 'wallet', 'portfel'),
+  word('core-bank', 'money', '🏦', 'bank', 'bank'),
+  word('core-sklep', 'money', '🏪', 'store', 'sklep'),
+  word('core-paragon', 'money', '🧾', 'receipt', 'paragon'),
+  word('core-reszta', 'money', '🪙', 'change', 'reszta'),
+  word('core-darmowy', 'money', '🆓', 'free', 'darmowy'),
+  word('core-kosztowac', 'money', '💲', 'to cost', 'kosztować'),
 
   word('num-1', 'numbers', '1️⃣', 'one', 'jeden'),
   word('num-2', 'numbers', '2️⃣', 'two', 'dwa'),
