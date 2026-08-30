@@ -193,6 +193,8 @@ let lastTutorTypeSound = 0
 const tutorRepeatCache = new Map<string, string>()
 const tutorMessageViews = new Map<number, { text: string; lang: LangCode }>()
 let tutorRepeatBusyIndex: number | null = null
+let tutorViewportRaf = 0
+let tutorViewportTrackUntil = 0
 
 prefetchVoices()
 
@@ -579,18 +581,39 @@ tutorSuggestions.addEventListener('click', (event) => {
   if (!button) return
   void sendTutorMessage(button.dataset.tutorPrompt ?? '')
 })
-tutorInput.addEventListener('focus', () => {
+tutorInput.addEventListener('pointerdown', (event) => {
+  if (event.pointerType === 'mouse' && event.button !== 0) return
+  // Focus before Safari's scroll-into-view pass so the page never jumps.
+  if (document.activeElement === tutorInput) return
+  event.preventDefault()
+  tutorInput.focus({ preventScroll: true })
+  pinDocumentScroll()
   syncTutorViewport()
-  window.setTimeout(() => {
-    syncTutorViewport()
+  trackTutorViewport(700)
+  window.requestAnimationFrame(() => {
     scrollTutorToBottom()
-  }, 320)
+  })
+})
+tutorInput.addEventListener('focus', () => {
+  pinDocumentScroll()
+  syncTutorViewport()
+  trackTutorViewport(900)
+  window.requestAnimationFrame(() => scrollTutorToBottom())
 })
 tutorInput.addEventListener('blur', () => {
-  window.setTimeout(() => syncTutorViewport(), 120)
+  trackTutorViewport(400)
 })
-window.visualViewport?.addEventListener('resize', syncTutorViewport)
-window.visualViewport?.addEventListener('scroll', syncTutorViewport)
+window.visualViewport?.addEventListener('resize', () => {
+  if (tutor.hidden) return
+  pinDocumentScroll()
+  syncTutorViewport()
+  trackTutorViewport(500)
+})
+window.visualViewport?.addEventListener('scroll', () => {
+  if (tutor.hidden) return
+  pinDocumentScroll()
+  syncTutorViewport()
+})
 tutorThread.addEventListener('click', (event) => {
   const target = event.target as HTMLElement
   const speakBtn = target.closest<HTMLButtonElement>('[data-tutor-speak]')
@@ -2412,6 +2435,7 @@ function openTutor(index: number): void {
   renderTutorThread()
   renderTutorSuggestions()
   tutor.hidden = false
+  pinDocumentScroll()
   syncTutorViewport()
   tutorScroll.scrollTop = 0
   window.setTimeout(() => scrollTutorToBottom(), 80)
@@ -2422,6 +2446,7 @@ function closeTutor(): void {
   window.clearTimeout(tutorRevealTimer)
   stopTutorPendingSounds()
   stopSpeech()
+  stopTutorViewportTracking()
   tutor.hidden = true
   clearTutorViewport()
   tutorBusy = false
@@ -2434,22 +2459,74 @@ function closeTutor(): void {
   tutorInput.blur()
 }
 
+function shouldLockTutorToVisualViewport(): boolean {
+  return (
+    window.matchMedia('(max-width: 539px)').matches ||
+    window.matchMedia('(pointer: coarse)').matches
+  )
+}
+
+function pinDocumentScroll(): void {
+  if (window.scrollX || window.scrollY) {
+    window.scrollTo(0, 0)
+  }
+}
+
 function syncTutorViewport(): void {
   if (tutor.hidden) {
     clearTutorViewport()
     return
   }
+  if (!shouldLockTutorToVisualViewport()) {
+    clearTutorViewport()
+    return
+  }
+
   const vv = window.visualViewport
   if (!vv) return
+
+  pinDocumentScroll()
+  tutor.classList.add('is-viewport-locked')
   tutor.style.top = `${vv.offsetTop}px`
+  tutor.style.left = `${vv.offsetLeft}px`
+  tutor.style.width = `${vv.width}px`
   tutor.style.height = `${vv.height}px`
+  tutor.style.right = 'auto'
   tutor.style.bottom = 'auto'
 }
 
 function clearTutorViewport(): void {
+  tutor.classList.remove('is-viewport-locked')
   tutor.style.top = ''
+  tutor.style.left = ''
+  tutor.style.width = ''
   tutor.style.height = ''
+  tutor.style.right = ''
   tutor.style.bottom = ''
+}
+
+function stopTutorViewportTracking(): void {
+  if (tutorViewportRaf) {
+    window.cancelAnimationFrame(tutorViewportRaf)
+    tutorViewportRaf = 0
+  }
+  tutorViewportTrackUntil = 0
+}
+
+function trackTutorViewport(ms: number): void {
+  tutorViewportTrackUntil = Math.max(tutorViewportTrackUntil, performance.now() + ms)
+  if (tutorViewportRaf) return
+
+  const tick = (): void => {
+    syncTutorViewport()
+    if (performance.now() < tutorViewportTrackUntil && !tutor.hidden) {
+      tutorViewportRaf = window.requestAnimationFrame(tick)
+      return
+    }
+    tutorViewportRaf = 0
+    syncTutorViewport()
+  }
+  tutorViewportRaf = window.requestAnimationFrame(tick)
 }
 
 function renderTutorQuick(): void {

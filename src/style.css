@@ -1585,6 +1585,12 @@ button {
     var(--bg);
 }
 
+.tutor.is-viewport-locked {
+  position: fixed;
+  inset: auto;
+  z-index: 80;
+}
+
 .tutor[hidden] {
   display: none;
 }
